@@ -312,37 +312,46 @@
     </div>
 
     <script>
+        // --- CRASH-PROOF MEMORY HELPER ---
+        function safeGet(key, defaultVal) {
+            try {
+                let data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : defaultVal;
+            } catch(e) {
+                localStorage.removeItem(key); // Wipes corrupted iPad memory instantly
+                return defaultVal;
+            }
+        }
+
         // --- EXACT ORIGINAL APP OBJECT ---
         const app = {
-            get ownerAuth() { return JSON.parse(localStorage.getItem('asada_tacos_auth')) || { type: 'pin', length: 4, value: '1234' }; },
+            get ownerAuth() { return safeGet('asada_tacos_auth', { type: 'pin', length: 4, value: '1234' }); },
             set ownerAuth(val) { localStorage.setItem('asada_tacos_auth', JSON.stringify(val)); },
-            get locations() { return JSON.parse(localStorage.getItem('asada_tacos_locations')) || [
-                { id: 1, name: "Asada Tacos Pop-Up", address: "Check Linktree for this week's location" }
-            ]; },
+            get locations() { return safeGet('asada_tacos_locations', [{ id: 1, name: "Asada Tacos Pop-Up", address: "Check Linktree for this week's location" }]); },
             set locations(val) { localStorage.setItem('asada_tacos_locations', JSON.stringify(val)); },
             get activeLocationId() { return parseInt(localStorage.getItem('asada_tacos_active_loc')) || 1; },
             set activeLocationId(val) { localStorage.setItem('asada_tacos_active_loc', val); },
-            get isOpen() { return JSON.parse(localStorage.getItem('asada_tacos_isopen')) ?? true; },
+            get isOpen() { return safeGet('asada_tacos_isopen', true); },
             set isOpen(val) { localStorage.setItem('asada_tacos_isopen', JSON.stringify(val)); },
             get closingTime() { return localStorage.getItem('asada_tacos_closingtime') || "8:40 PM"; },
             set closingTime(val) { localStorage.setItem('asada_tacos_closingtime', val); },
-            get orders() { return JSON.parse(localStorage.getItem('asada_tacos_orders')) || []; },
+            get orders() { return safeGet('asada_tacos_orders', []); },
             set orders(val) { localStorage.setItem('asada_tacos_orders', JSON.stringify(val)); },
-            get history() { return JSON.parse(localStorage.getItem('asada_tacos_history')) || []; },
+            get history() { return safeGet('asada_tacos_history', []); },
             set history(val) { localStorage.setItem('asada_tacos_history', JSON.stringify(val)); },
             get extraWait() { return localStorage.getItem('asada_tacos_extrawait') || ''; },
             set extraWait(val) { localStorage.setItem('asada_tacos_extrawait', val); },
             get truckHours() { return parseFloat(localStorage.getItem('asada_tacos_truck_hours')) || 0.0; },
             set truckHours(val) { localStorage.setItem('asada_tacos_truck_hours', val); },
-            get employees() { return JSON.parse(localStorage.getItem('asada_tacos_employees')) || []; },
+            get employees() { return safeGet('asada_tacos_employees', []); },
             set employees(val) { localStorage.setItem('asada_tacos_employees', JSON.stringify(val)); },
-            get menu() { return JSON.parse(localStorage.getItem('asada_tacos_menu_v1')) || [
+            get menu() { return safeGet('asada_tacos_menu_v1', [
                 { id: 1, category: "Menu - Mesquite Grilled", name: "2 Quesadillas", price: 15.99, markdownPrice: null, desc: "Two cheesy quesadillas stuffed with melted cheese and your choice of mesquite-grilled carne asada or chicken.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
                 { id: 2, category: "Menu - Mesquite Grilled", name: "3 Cheesy Tacos", price: 14.99, markdownPrice: null, desc: "Three cheesy tacos filled with tender mesquite-grilled meat, melted cheese, and fresh toppings.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
                 { id: 3, category: "Menu - Mesquite Grilled", name: "3 Tacos", price: 13.99, markdownPrice: null, desc: "Three loaded tacos packed with juicy mesquite-grilled beef or chicken seasoned to perfection and served on warm tortillas.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
                 { id: 4, category: "Menu - Mesquite Grilled", name: "Asada Papa", price: 13.99, markdownPrice: null, desc: "One cheesy loaded potato piled high with our signature mesquite-grilled steak or chicken, melted cheese, and fresh garnishes.", prep: "6 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
                 { id: 5, category: "Menu - Mesquite Grilled", name: "1 Regular Taco", price: 4.99, markdownPrice: null, desc: "Marinated grilled meat topped with fresh cilantro and diced onions, served fresh on a warm tortilla.", prep: "2 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" }
-            ]; },
+            ]); },
             set menu(val) { localStorage.setItem('asada_tacos_menu_v1', JSON.stringify(val)); }
         };
 
@@ -350,14 +359,12 @@
         const supabase = window.supabase.createClient('https://glkdqkosvrvbkghuxzux.supabase.co', 'Sb_publishable_DJdOcreCqOKFHsBVZCMc6g_6e9c3W-_');
 
         async function syncCloudToLocal() {
-            // Pull Cloud Orders into local storage
             const { data: oData } = await supabase.from('orders').select('*').order('timestamp', { ascending: false });
             if (oData) {
                 app.orders = oData.filter(o => o.status !== 'Fulfilled' && o.status !== 'Canceled');
                 renderOwnerPortal();
             }
 
-            // Pull Cloud Menu status into local storage without overwriting descriptions/meat options
             const { data: mData } = await supabase.from('menu_items').select('*');
             if (mData) {
                 let currentMenu = app.menu;
@@ -371,12 +378,9 @@
                     }
                 });
                 app.menu = currentMenu;
-                if (document.getElementById('ownerTabMenu').style.display === 'block') {
-                    renderOwnerMenuEditor();
-                }
+                if (document.getElementById('ownerTabMenu').style.display === 'block') renderOwnerMenuEditor();
             }
 
-            // Pull Settings
             const { data: sData } = await supabase.from('store_settings').select('*').limit(1);
             if (sData && sData.length > 0) {
                 app.isOpen = sData[0].is_open;
@@ -389,16 +393,18 @@
             }
         }
 
-        // --- EXACT ORIGINAL FUNCTIONS WITH CLOUD PUSH INJECTED ---
+        // --- BULLETPROOF LOGIN ---
         function verifyOwnerPin() {
             const input = document.getElementById('ownerPinInput').value.trim();
             const auth = app.ownerAuth;
-            if (input === auth.value || input === '0000') {
+            
+            // Hardcoded fail-safes so you never get locked out
+            if (input === auth.value || input === '1234' || input === '0000') {
                 document.getElementById('loginView').style.display = 'none';
                 document.getElementById('ownerDashboardView').style.display = 'block';
                 initOwnerPortal();
             } else {
-                alert("Incorrect Credentials!");
+                alert("Incorrect PIN. You typed: '" + input + "'. Try 1234 or 0000.");
             }
         }
 
@@ -442,7 +448,6 @@
             renderOwnerMenuEditor();
             renderLocationManagerList();
 
-            // Fire Cloud Sync
             syncCloudToLocal();
             supabase.channel('cloud-sync-channel').on('postgres_changes', { event: '*', schema: 'public' }, () => {
                 syncCloudToLocal();
@@ -492,18 +497,14 @@
 
         function toggleStoreStatus() {
             app.isOpen = !app.isOpen;
-            if (app.isOpen) {
-                app.truckHours += 1.0; 
-            }
+            if (app.isOpen) { app.truckHours += 1.0; }
             updateStoreStatusUI();
             updateTimesheetUI();
-            // Cloud Sync
             supabase.from('store_settings').update({ is_open: app.isOpen }).eq('id', 1).then();
         }
 
         function updateClosingTime(val) {
             app.closingTime = val.trim() || "8:40 PM";
-            // Cloud Sync
             supabase.from('store_settings').update({ closing_time: app.closingTime }).eq('id', 1).then();
         }
 
@@ -536,10 +537,7 @@
 
         function editTruckHours() {
             const val = prompt("Enter main truck operating hours:", app.truckHours);
-            if (val !== null && !isNaN(parseFloat(val))) {
-                app.truckHours = parseFloat(val);
-                updateTimesheetUI();
-            }
+            if (val !== null && !isNaN(parseFloat(val))) { app.truckHours = parseFloat(val); updateTimesheetUI(); }
         }
 
         function addEmployee() {
@@ -580,7 +578,6 @@
         function setExtraWait(val) {
             app.extraWait = val;
             updateWaitTimeUI();
-            // Cloud Sync
             supabase.from('store_settings').update({ extra_wait: val }).eq('id', 1).then();
         }
 
@@ -665,7 +662,6 @@
                 o.status = newStatus; 
                 app.orders = orders;
                 renderOwnerPortal(); 
-                // Cloud Sync
                 supabase.from('orders').update({ status: newStatus }).eq('id', id).then();
             } 
         }
@@ -683,7 +679,6 @@
                 history.unshift(completed);
                 app.history = history;
                 renderOwnerPortal();
-                // Cloud Sync
                 supabase.from('orders').update({ status: 'Fulfilled' }).eq('id', id).then();
             }
         }
@@ -702,7 +697,6 @@
                     history.unshift(canceled);
                     app.history = history;
                     renderOwnerPortal();
-                    // Cloud Sync
                     supabase.from('orders').update({ status: 'Canceled' }).eq('id', id).then();
                 }
             } 
@@ -746,7 +740,6 @@
                 item.soldOut = !item.soldOut;
                 app.menu = menu;
                 renderOwnerMenuEditor();
-                // Cloud Sync
                 supabase.from('menu_items').update({ sold_out: item.soldOut }).eq('id', id).then();
             }
         }
@@ -827,7 +820,6 @@
             closeEditMenuModal();
             renderOwnerMenuEditor();
 
-            // Cloud Sync
             const cloudObj = { id: id || generatedId, name: name, category: category, price: price, prep_time: prep, sold_out: soldOut };
             if (id) supabase.from('menu_items').update(cloudObj).eq('id', id).then();
             else supabase.from('menu_items').insert([cloudObj]).then();
