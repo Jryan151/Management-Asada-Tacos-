@@ -5,20 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asada Tacos - Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         tailwind.config = {
             theme: {
-                extend: { colors: { tan: { 400: '#d5b996', 500: '#c5a57d', 600: '#b08f68', 700: '#8c6f4d', 950: '#3a2b1c' } },
-                fontFamily: { 'serif': ['"Playfair Display"', 'serif'], 'sans': ['"Montserrat"', 'sans-serif'] } }
+                extend: {
+                    colors: {
+                        tan: { 400: '#d5b996', 500: '#c5a57d', 600: '#b08f68', 700: '#8c6f4d', 950: '#3a2b1c' }
+                    },
+                    fontFamily: {
+                        'serif': ['"Playfair Display"', 'serif'],
+                        'sans': ['"Montserrat"', 'sans-serif'],
+                    }
+                }
             }
         }
     </script>
 </head>
 <body class="bg-zinc-950 text-zinc-100 font-sans min-h-screen pb-20 flex flex-col justify-between">
     <div class="max-w-md mx-auto w-full flex-grow">
-        
         <!-- Password Lock Screen -->
         <div id="loginView" class="p-6 flex flex-col items-center justify-center min-h-[90vh] text-center">
             <div class="w-24 h-24 rounded-full border-2 border-tan-500 p-1 mb-4 flex items-center justify-center shadow-lg shadow-tan-500/10">
@@ -34,16 +42,7 @@
                     <label class="block text-xs text-zinc-400 mb-1 font-medium text-left">Enter Credentials</label>
                     <input type="password" id="ownerPinInput" placeholder="Password or PIN" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-3 text-sm text-zinc-200 text-center tracking-widest font-mono">
                 </div>
-                
-                <!-- DIAGNOSTIC BUTTON -->
-                <button onclick="
-                    if (typeof verifyOwnerPin === 'undefined') {
-                        alert('SYNTAX ERROR: The code was pasted incorrectly and the Javascript is broken. Make sure you copy all the way down to the </html> tag!');
-                    } else {
-                        try { verifyOwnerPin(); } catch(err) { alert('CRASH: ' + err.message); }
-                    }
-                " class="w-full bg-tan-600 hover:bg-tan-500 text-zinc-950 font-bold py-3 rounded-xl transition shadow-lg shadow-tan-600/20">Enter Portal</button>
-
+                <button onclick="verifyOwnerPin()" class="w-full bg-tan-600 hover:bg-tan-500 text-zinc-950 font-bold py-3 rounded-xl transition shadow-lg shadow-tan-600/20">Enter Portal</button>
             </div>
         </div>
 
@@ -59,9 +58,7 @@
                         <p class="text-[10px] text-tan-400 font-medium uppercase tracking-widest flex items-center gap-1">Management <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="lockOwnerPortal()" class="text-xs text-rose-400 hover:underline">Lock</button>
-                </div>
+                <button onclick="lockOwnerPortal()" class="text-xs text-rose-400 hover:underline">Lock</button>
             </div>
             
             <div class="grid grid-cols-4 gap-1.5 mb-2">
@@ -163,6 +160,18 @@
                             <span id="statDaily" class="font-mono font-bold text-emerald-400">$0.00</span>
                         </div>
                         <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
+                            <span class="text-zinc-400">Weekly Revenue:</span>
+                            <span id="statWeekly" class="font-mono font-bold text-emerald-400">$0.00</span>
+                        </div>
+                        <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
+                            <span class="text-zinc-400">Monthly Revenue:</span>
+                            <span id="statMonthly" class="font-mono font-bold text-emerald-400">$0.00</span>
+                        </div>
+                        <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
+                            <span class="text-zinc-400">Yearly Revenue:</span>
+                            <span id="statYearly" class="font-mono font-bold text-emerald-400">$0.00</span>
+                        </div>
+                        <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
                             <span class="text-zinc-400">Average Wait Time per Order:</span>
                             <span id="statAvgWait" class="font-mono font-bold text-tan-400">0 mins</span>
                         </div>
@@ -193,7 +202,7 @@
         </div>
     </div>
 
-    <!-- Edit Menu Modal -->
+    <!-- Edit Menu Item Modal -->
     <div id="editMenuModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-2xl p-5 space-y-3 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-zinc-800 pb-2"><h3 id="editMenuModalTitle" class="font-bold text-base text-tan-500 font-serif">Edit Menu Item</h3><button onclick="closeEditMenuModal()" class="text-zinc-400 hover:text-white text-sm">✕</button></div>
@@ -232,6 +241,7 @@
                 return parsed !== null ? parsed : defaultVal;
             } catch(e) { return defaultVal; }
         }
+
         function safeSet(key, val) {
             try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
         }
@@ -258,15 +268,16 @@
             get employees() { return safeGet('asada_tacos_employees', []); },
             set employees(val) { safeSet('asada_tacos_employees', val); },
             get menu() { return safeGet('asada_tacos_menu_v1', [
-                { id: 1, category: "Menu - Mesquite Grilled", name: "2 Quesadillas", price: 15.99, markdownPrice: null, desc: "Two cheesy quesadillas.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
-                { id: 2, category: "Menu - Mesquite Grilled", name: "3 Cheesy Tacos", price: 14.99, markdownPrice: null, desc: "Three cheesy tacos.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
-                { id: 3, category: "Menu - Mesquite Grilled", name: "3 Tacos", price: 13.99, markdownPrice: null, desc: "Three loaded tacos.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
-                { id: 4, category: "Menu - Mesquite Grilled", name: "Asada Papa", price: 13.99, markdownPrice: null, desc: "One cheesy loaded potato.", prep: "6 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
-                { id: 5, category: "Menu - Mesquite Grilled", name: "1 Regular Taco", price: 4.99, markdownPrice: null, desc: "Marinated grilled meat.", prep: "2 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" }
+                { id: 1, category: "Menu - Mesquite Grilled", name: "2 Quesadillas", price: 15.99, markdownPrice: null, desc: "Two cheesy quesadillas stuffed with melted cheese and your choice of mesquite-grilled carne asada or chicken.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
+                { id: 2, category: "Menu - Mesquite Grilled", name: "3 Cheesy Tacos", price: 14.99, markdownPrice: null, desc: "Three cheesy tacos filled with tender mesquite-grilled meat, melted cheese, and fresh toppings.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
+                { id: 3, category: "Menu - Mesquite Grilled", name: "3 Tacos", price: 13.99, markdownPrice: null, desc: "Three loaded tacos packed with juicy mesquite-grilled beef or chicken seasoned to perfection and served on warm tortillas.", prep: "5 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
+                { id: 4, category: "Menu - Mesquite Grilled", name: "Asada Papa", price: 13.99, markdownPrice: null, desc: "One cheesy loaded potato piled high with our signature mesquite-grilled steak or chicken, melted cheese, and fresh garnishes.", prep: "6 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" },
+                { id: 5, category: "Menu - Mesquite Grilled", name: "1 Regular Taco", price: 4.99, markdownPrice: null, desc: "Marinated grilled meat topped with fresh cilantro and diced onions, served fresh on a warm tortilla.", prep: "2 mins", soldOut: false, hasMeat: true, meats: "Carne Asada, Chicken" }
             ]); },
             set menu(val) { safeSet('asada_tacos_menu_v1', val); }
         };
 
+        // --- Supabase Init with Correct Project ID ---
         let supabase = null;
         try {
             if (window.supabase) {
@@ -278,22 +289,36 @@
             if (!supabase) return;
             try {
                 const { data: oData } = await supabase.from('orders').select('*').order('timestamp', { ascending: false });
-                if (oData) { app.orders = oData.filter(o => o.status !== 'Fulfilled' && o.status !== 'Canceled'); renderOwnerPortal(); }
+                if (oData) { 
+                    app.orders = oData.filter(o => o.status !== 'Fulfilled' && o.status !== 'Canceled'); 
+                    renderOwnerPortal(); 
+                }
+
                 const { data: mData } = await supabase.from('menu_items').select('*');
                 if (mData) {
                     let currentMenu = Array.isArray(app.menu) ? app.menu : [];
                     mData.forEach(cloudItem => {
                         let localItem = currentMenu.find(m => m.id == cloudItem.id);
-                        if (localItem) { localItem.name = cloudItem.name; localItem.price = cloudItem.price; localItem.prep = cloudItem.prep_time; localItem.soldOut = cloudItem.sold_out; }
+                        if (localItem) { 
+                            localItem.name = cloudItem.name; 
+                            localItem.price = cloudItem.price; 
+                            localItem.prep = cloudItem.prep_time; 
+                            localItem.soldOut = cloudItem.sold_out; 
+                        }
                     });
                     app.menu = currentMenu;
                     if (document.getElementById('ownerTabMenu').style.display === 'block') renderOwnerMenuEditor();
                 }
+
                 const { data: sData } = await supabase.from('store_settings').select('*').limit(1);
                 if (sData && sData.length > 0) {
-                    app.isOpen = sData[0].is_open; app.closingTime = sData[0].closing_time; app.extraWait = sData[0].extra_wait || '';
-                    updateStoreStatusUI(); updateWaitTimeUI();
-                    const closeInput = document.getElementById('closingTimeInput'); if(closeInput) closeInput.value = app.closingTime;
+                    app.isOpen = sData[0].is_open; 
+                    app.closingTime = sData[0].closing_time; 
+                    app.extraWait = sData[0].extra_wait || '';
+                    updateStoreStatusUI(); 
+                    updateWaitTimeUI();
+                    const closeInput = document.getElementById('closingTimeInput'); 
+                    if(closeInput) closeInput.value = app.closingTime;
                 }
             } catch(e) {}
         }
@@ -312,114 +337,531 @@
             }
         }
 
-        function lockOwnerPortal() { document.getElementById('ownerDashboardView').style.display = 'none'; document.getElementById('loginView').style.display = 'flex'; document.getElementById('ownerPinInput').value = ''; }
+        function lockOwnerPortal() { 
+            document.getElementById('ownerDashboardView').style.display = 'none'; 
+            document.getElementById('loginView').style.display = 'flex'; 
+            document.getElementById('ownerPinInput').value = ''; 
+        }
 
         function switchOwnerTab(tabName) {
             ['Orders', 'Menu', 'Locations', 'Analytics', 'Info'].forEach(t => {
-                const el = document.getElementById(`ownerTab${t}`); const btn = document.getElementById(`tabBtn${t}`);
+                const el = document.getElementById(`ownerTab${t}`); 
+                const btn = document.getElementById(`tabBtn${t}`);
                 if (el) el.style.display = (t === tabName) ? 'block' : 'none';
-                if (btn && t !== 'Info') btn.className = (t === tabName) ? "bg-tan-600 text-zinc-950 font-bold py-2 rounded-xl text-[11px] transition shadow" : "bg-zinc-900 border border-zinc-800 text-zinc-300 font-semibold py-2 rounded-xl text-[11px] transition";
+                if (btn && t !== 'Info') {
+                    btn.className = (t === tabName) ? 
+                        "bg-tan-600 text-zinc-950 font-bold py-2 rounded-xl text-[11px] transition shadow" : 
+                        "bg-zinc-900 border border-zinc-800 text-zinc-300 font-semibold py-2 rounded-xl text-[11px] transition";
+                }
             });
-            if (tabName === 'Orders') renderOwnerPortal(); if (tabName === 'Menu') renderOwnerMenuEditor(); if (tabName === 'Locations') renderLocationManagerList(); if (tabName === 'Analytics') renderAnalytics();
+            if (tabName === 'Orders') renderOwnerPortal(); 
+            if (tabName === 'Menu') renderOwnerMenuEditor(); 
+            if (tabName === 'Locations') renderLocationManagerList(); 
+            if (tabName === 'Analytics') renderAnalytics();
         }
 
         function initOwnerPortal() {
-            updateStoreStatusUI(); updateWaitTimeUI(); updateTimesheetUI();
+            updateStoreStatusUI(); 
+            updateWaitTimeUI(); 
+            updateTimesheetUI();
             document.getElementById('closingTimeInput').value = app.closingTime || "8:40 PM";
-            renderOwnerPortal(); renderOwnerMenuEditor(); renderLocationManagerList();
+            renderOwnerPortal(); 
+            renderOwnerMenuEditor(); 
+            renderLocationManagerList();
             syncCloudToLocal();
-            if (supabase) { try { supabase.channel('cloud-sync-channel').on('postgres_changes', { event: '*', schema: 'public' }, () => { syncCloudToLocal(); }).subscribe(); } catch(e){} }
-        }
-
-        function saveNewAuth() {
-            const val1 = document.getElementById('newAuthVal').value; const val2 = document.getElementById('confirmAuthVal').value;
-            if (!val1) { alert("Credentials cannot be empty."); return; } if (val1 !== val2) { alert("Passwords do not match. Try again."); return; }
-            app.ownerAuth = { type: 'pin', length: val1.length, value: val1 }; alert("Credentials updated successfully!"); document.getElementById('newAuthVal').value = ''; document.getElementById('confirmAuthVal').value = '';
-        }
-
-        function updateStoreStatusUI() {
-            const label = document.getElementById('ownerStatusLabel'); const btn = document.getElementById('storeToggleBtn');
-            if (app.isOpen) { label.innerText = "Open"; label.className = "text-emerald-400"; btn.innerText = "Close Store"; btn.className = "bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition"; }
-            else { label.innerText = "Closed"; label.className = "text-rose-400"; btn.innerText = "Open Store"; btn.className = "bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition"; }
-        }
-
-        function toggleStoreStatus() { app.isOpen = !app.isOpen; if (app.isOpen) { app.truckHours = (Number(app.truckHours) || 0) + 1.0; } updateStoreStatusUI(); updateTimesheetUI(); if (supabase) { supabase.from('store_settings').update({ is_open: app.isOpen }).eq('id', 1).then(); } }
-        function updateClosingTime(val) { app.closingTime = val.trim() || "8:40 PM"; if (supabase) { supabase.from('store_settings').update({ closing_time: app.closingTime }).eq('id', 1).then(); } }
-
-        function updateTimesheetUI() {
-            const truckHrs = Number(app.truckHours) || 0; document.getElementById('truckHoursDisplay').innerText = `${truckHrs.toFixed(1)}h`;
-            const employees = Array.isArray(app.employees) ? app.employees : []; const empList = document.getElementById('employeeTimesheetList');
-            const totalEmpHours = employees.reduce((sum, e) => sum + (Number(e.hours) || 0), 0); const totalCombined = truckHrs + totalEmpHours; document.getElementById('totalCombinedHoursDisplay').innerText = `${totalCombined.toFixed(1)} total hrs`;
-            if (empList) {
-                if (employees.length === 0) empList.innerHTML = `<div class="text-[11px] text-zinc-500">No employees added yet.</div>`;
-                else empList.innerHTML = employees.map((emp, idx) => `<div class="flex justify-between items-center bg-zinc-900 p-2 rounded border border-zinc-800 text-xs"><span class="font-medium text-zinc-200">${emp.name}</span><div class="flex items-center gap-2"><span class="font-mono text-tan-400">${(Number(emp.hours)||0).toFixed(1)} hrs</span><button onclick="adjustEmployeeHours(${idx}, 1.0)" class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px]">+1h</button><button onclick="editEmployeeHours(${idx})" class="text-zinc-400 hover:underline text-[10px]">Edit</button><button onclick="removeEmployee(${idx})" class="text-rose-400 text-[10px]">✕</button></div></div>`).join('');
+            if (supabase) { 
+                try { 
+                    supabase.channel('cloud-sync-channel').on('postgres_changes', { event: '*', schema: 'public' }, () => { 
+                        syncCloudToLocal(); 
+                    }).subscribe(); 
+                } catch(e){} 
             }
         }
 
-        function editTruckHours() { const val = prompt("Enter main truck operating hours:", app.truckHours); if (val !== null && !isNaN(parseFloat(val))) { app.truckHours = parseFloat(val); updateTimesheetUI(); } }
-        function addEmployee() { const n = document.getElementById('newEmployeeName').value.trim(); if (!n) return; let e = Array.isArray(app.employees) ? app.employees : []; e.push({ name: n, hours: 0.0 }); app.employees = e; document.getElementById('newEmployeeName').value = ''; updateTimesheetUI(); }
-        function adjustEmployeeHours(idx, delta) { let e = Array.isArray(app.employees) ? app.employees : []; if(e[idx]) e[idx].hours = (Number(e[idx].hours)||0) + delta; app.employees = e; updateTimesheetUI(); }
-        function editEmployeeHours(idx) { let e = Array.isArray(app.employees) ? app.employees : []; if(!e[idx]) return; const val = prompt(`Enter hours for ${e[idx].name}:`, e[idx].hours); if (val !== null && !isNaN(parseFloat(val))) { e[idx].hours = parseFloat(val); app.employees = e; updateTimesheetUI(); } }
-        function removeEmployee(idx) { let e = Array.isArray(app.employees) ? app.employees : []; e.splice(idx, 1); app.employees = e; updateTimesheetUI(); }
+        function saveNewAuth() {
+            const val1 = document.getElementById('newAuthVal').value; 
+            const val2 = document.getElementById('confirmAuthVal').value;
+            if (!val1) { alert("Credentials cannot be empty."); return; } 
+            if (val1 !== val2) { alert("Passwords do not match. Try again."); return; }
+            app.ownerAuth = { type: 'pin', length: val1.length, value: val1 }; 
+            alert("Credentials updated successfully!"); 
+            document.getElementById('newAuthVal').value = ''; 
+            document.getElementById('confirmAuthVal').value = '';
+        }
 
-        function setExtraWait(val) { app.extraWait = val; updateWaitTimeUI(); if (supabase) { supabase.from('store_settings').update({ extra_wait: val }).eq('id', 1).then(); } }
-        function updateWaitTimeUI() { ['Normal', '15', '30'].forEach(v => { const btn = document.getElementById(v === 'Normal' ? 'waitBtnNormal' : `waitBtn${v}`); if (btn) btn.className = ((v === 'Normal' && !app.extraWait) || app.extraWait === v) ? "bg-tan-600 text-zinc-950 py-1.5 rounded text-[11px] font-bold shadow" : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 rounded text-[11px] font-semibold"; }); }
+        function updateStoreStatusUI() {
+            const label = document.getElementById('ownerStatusLabel'); 
+            const btn = document.getElementById('storeToggleBtn');
+            if (app.isOpen) {
+                label.innerText = "Open"; 
+                label.className = "text-emerald-400";
+                btn.innerText = "Close Store"; 
+                btn.className = "bg-rose-600 hover:bg-rose-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition";
+            } else {
+                label.innerText = "Closed"; 
+                label.className = "text-rose-400";
+                btn.innerText = "Open Store"; 
+                btn.className = "bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition";
+            }
+        }
+
+        function toggleStoreStatus() { 
+            app.isOpen = !app.isOpen; 
+            if (app.isOpen) { 
+                app.truckHours = (Number(app.truckHours) || 0) + 1.0; 
+            } 
+            updateStoreStatusUI(); 
+            updateTimesheetUI();
+            if (supabase) { 
+                supabase.from('store_settings').update({ is_open: app.isOpen }).eq('id', 1).then(); 
+            } 
+        }
+
+        function updateClosingTime(val) { 
+            app.closingTime = val.trim() || "8:40 PM";
+            if (supabase) { 
+                supabase.from('store_settings').update({ closing_time: app.closingTime }).eq('id', 1).then(); 
+            } 
+        }
+
+        function updateTimesheetUI() {
+            const truckHrs = Number(app.truckHours) || 0; 
+            document.getElementById('truckHoursDisplay').innerText = `${truckHrs.toFixed(1)}h`;
+            const employees = Array.isArray(app.employees) ? app.employees : []; 
+            const empList = document.getElementById('employeeTimesheetList');
+            const totalEmpHours = employees.reduce((sum, e) => sum + (Number(e.hours) || 0), 0); 
+            const totalCombined = truckHrs + totalEmpHours; 
+            document.getElementById('totalCombinedHoursDisplay').innerText = `${totalCombined.toFixed(1)} total hrs`;
+            
+            if (empList) {
+                if (employees.length === 0) {
+                    empList.innerHTML = `<div class="text-[11px] text-zinc-500">No employees added yet.</div>`;
+                } else {
+                    empList.innerHTML = employees.map((emp, idx) => `
+                        <div class="flex justify-between items-center bg-zinc-900 p-2 rounded border border-zinc-800 text-xs">
+                            <span class="font-medium text-zinc-200">${emp.name}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono text-tan-400">${(Number(emp.hours)||0).toFixed(1)} hrs</span>
+                                <button onclick="adjustEmployeeHours(${idx}, 1.0)" class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px]">+1h</button>
+                                <button onclick="editEmployeeHours(${idx})" class="text-zinc-400 hover:underline text-[10px]">Edit</button>
+                                <button onclick="removeEmployee(${idx})" class="text-rose-400 text-[10px]">✕</button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        }
+
+        function editTruckHours() { 
+            const val = prompt("Enter main truck operating hours:", app.truckHours); 
+            if (val !== null && !isNaN(parseFloat(val))) { 
+                app.truckHours = parseFloat(val); 
+                updateTimesheetUI(); 
+            } 
+        }
+
+        function addEmployee() { 
+            const n = document.getElementById('newEmployeeName').value.trim(); 
+            if (!n) return; 
+            let e = Array.isArray(app.employees) ? app.employees : []; 
+            e.push({ name: n, hours: 0.0 }); 
+            app.employees = e; 
+            document.getElementById('newEmployeeName').value = ''; 
+            updateTimesheetUI(); 
+        }
+
+        function adjustEmployeeHours(idx, delta) { 
+            let e = Array.isArray(app.employees) ? app.employees : []; 
+            if(e[idx]) e[idx].hours = (Number(e[idx].hours)||0) + delta; 
+            app.employees = e; 
+            updateTimesheetUI(); 
+        }
+
+        function editEmployeeHours(idx) { 
+            let e = Array.isArray(app.employees) ? app.employees : []; 
+            if(!e[idx]) return; 
+            const val = prompt(`Enter hours for ${e[idx].name}:`, e[idx].hours); 
+            if (val !== null && !isNaN(parseFloat(val))) { 
+                e[idx].hours = parseFloat(val); 
+                app.employees = e; 
+                updateTimesheetUI(); 
+            } 
+        }
+
+        function removeEmployee(idx) { 
+            let e = Array.isArray(app.employees) ? app.employees : []; 
+            e.splice(idx, 1); 
+            app.employees = e; 
+            updateTimesheetUI(); 
+        }
+
+        function setExtraWait(val) { 
+            app.extraWait = val; 
+            updateWaitTimeUI();
+            if (supabase) { 
+                supabase.from('store_settings').update({ extra_wait: val }).eq('id', 1).then(); 
+            } 
+        }
+
+        function updateWaitTimeUI() {
+            ['Normal', '15', '30'].forEach(v => {
+                const btn = document.getElementById(v === 'Normal' ? 'waitBtnNormal' : `waitBtn${v}`);
+                if (btn) {
+                    btn.className = ((v === 'Normal' && !app.extraWait) || app.extraWait === v) ? 
+                        "bg-tan-600 text-zinc-950 py-1.5 rounded text-[11px] font-bold shadow" : 
+                        "bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 rounded text-[11px] font-semibold";
+                }
+            });
+        }
 
         function renderOwnerPortal() {
-            const container = document.getElementById('ownerOrdersList'); const historyContainer = document.getElementById('historyOrdersList'); if(!container) return;
+            const container = document.getElementById('ownerOrdersList'); 
+            const historyContainer = document.getElementById('historyOrdersList'); 
+            if(!container) return;
+            
             const orders = Array.isArray(app.orders) ? app.orders : [];
-            if (orders.length === 0) container.innerHTML = `<div class="text-center text-zinc-500 py-6 text-xs bg-zinc-900 border border-zinc-800 rounded-xl">No incoming active orders.</div>`;
-            else container.innerHTML = orders.map(o => { const waitMins = Math.floor((Date.now() - (o.timestamp || Date.now())) / 60000); return `<div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex flex-col gap-3"><div class="flex justify-between items-start"><div><span class="text-xs text-tan-500 font-mono font-bold">#${o.id} (${o.name}) • Elapsed: ${waitMins}m</span><h4 class="font-bold text-sm mt-1">${o.items}</h4>${o.notes ? `<p class="text-xs text-tan-400 mt-1">Note: ${o.notes}</p>` : ''}</div><span class="font-bold text-emerald-400">$${(Number(o.total)||0).toFixed(2)}</span></div><div class="flex gap-2 pt-2 border-t border-zinc-800/80"><button onclick="updateOrderStatus('${o.id}', '${o.status === 'Preparing' ? 'Ready' : 'Preparing'}')" class="flex-1 bg-tan-600 hover:bg-tan-500 py-1.5 rounded-lg text-xs font-bold text-zinc-950">${o.status === 'Preparing' ? 'Mark Ready' : 'Set Preparing'}</button><button onclick="completeOrder('${o.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-1.5 rounded-lg text-xs font-medium text-white">Fulfill ✓</button><button onclick="cancelOrder('${o.id}')" class="bg-rose-950 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-medium">Cancel</button></div></div>`; }).join('');
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="text-center text-zinc-500 py-6 text-xs bg-zinc-900 border border-zinc-800 rounded-xl">No incoming active orders.</div>`;
+            } else {
+                container.innerHTML = orders.map(o => {
+                    const waitMins = Math.floor((Date.now() - (o.timestamp || Date.now())) / 60000);
+                    return `
+                        <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex flex-col gap-3">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span class="text-xs text-tan-500 font-mono font-bold">#${o.id} (${o.name}) • Elapsed: ${waitMins}m</span>
+                                    <h4 class="font-bold text-sm mt-1">${o.items}</h4>
+                                    ${o.notes ? `<p class="text-xs text-tan-400 mt-1">Note: ${o.notes}</p>` : ''}
+                                </div>
+                                <span class="font-bold text-emerald-400">$${(Number(o.total)||0).toFixed(2)}</span>
+                            </div>
+                            <div class="flex gap-2 pt-2 border-t border-zinc-800/80">
+                                <button onclick="updateOrderStatus('${o.id}', '${o.status === 'Preparing' ? 'Ready' : 'Preparing'}')" class="flex-1 bg-tan-600 hover:bg-tan-500 py-1.5 rounded-lg text-xs font-bold text-zinc-950">${o.status === 'Preparing' ? 'Mark Ready' : 'Set Preparing'}</button>
+                                <button onclick="completeOrder('${o.id}')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-1.5 rounded-lg text-xs font-medium text-white">Fulfill ✓</button>
+                                <button onclick="cancelOrder('${o.id}')" class="bg-rose-950 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-medium">Cancel</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
 
             const history = Array.isArray(app.history) ? app.history : [];
-            if (historyContainer) { if (history.length === 0) historyContainer.innerHTML = `<div class="text-center text-zinc-500 py-3 text-xs">No fulfilled or canceled orders yet.</div>`; else historyContainer.innerHTML = history.map(h => `<div class="bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex justify-between items-center text-xs"><div><span class="font-mono font-bold text-tan-400">#${h.id} (${h.name})</span><div class="text-zinc-300 text-[11px] mt-0.5">${h.items}</div><div class="text-[10px] text-zinc-500 mt-0.5">$${(Number(h.total)||0).toFixed(2)} • <span class="${h.status === 'Fulfilled' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${h.status}</span></div></div></div>`).join(''); }
+            if (historyContainer) {
+                if (history.length === 0) {
+                    historyContainer.innerHTML = `<div class="text-center text-zinc-500 py-3 text-xs">No fulfilled or canceled orders yet.</div>`;
+                } else {
+                    historyContainer.innerHTML = history.map(h => `
+                        <div class="bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex justify-between items-center text-xs">
+                            <div>
+                                <span class="font-mono font-bold text-tan-400">#${h.id} (${h.name})</span>
+                                <div class="text-zinc-300 text-[11px] mt-0.5">${h.items}</div>
+                                <div class="text-[10px] text-zinc-500 mt-0.5">$${(Number(h.total)||0).toFixed(2)} • <span class="${h.status === 'Fulfilled' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${h.status}</span></div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
         }
 
-        function toggleHistoryCollapse() { const container = document.getElementById('historyCollapseContainer'); const arrow = document.getElementById('historyArrowIcon'); container.classList.toggle('hidden'); arrow.innerText = container.classList.contains('hidden') ? "▼" : "▲"; }
-        function updateOrderStatus(id, newStatus) { let orders = Array.isArray(app.orders) ? app.orders : []; const o = orders.find(x => x.id == id); if (o) { o.status = newStatus; app.orders = orders; renderOwnerPortal(); if (supabase) { supabase.from('orders').update({ status: newStatus }).eq('id', id).then(); } } }
-        function completeOrder(id) { let orders = Array.isArray(app.orders) ? app.orders : []; const idx = orders.findIndex(x => x.id == id); if (idx > -1) { const completed = orders.splice(idx, 1)[0]; completed.status = "Fulfilled"; completed.completedTimestamp = Date.now(); completed.fulfillmentWaitMins = Math.floor((completed.completedTimestamp - (completed.timestamp || Date.now())) / 60000); app.orders = orders; let history = Array.isArray(app.history) ? app.history : []; history.unshift(completed); app.history = history; renderOwnerPortal(); if (supabase) { supabase.from('orders').update({ status: 'Fulfilled' }).eq('id', id).then(); } } }
-        function cancelOrder(id) { if (confirm("Cancel this order?")) { let orders = Array.isArray(app.orders) ? app.orders : []; const idx = orders.findIndex(x => x.id == id); if (idx > -1) { const canceled = orders.splice(idx, 1)[0]; canceled.status = "Canceled"; canceled.completedTimestamp = Date.now(); canceled.fulfillmentWaitMins = Math.floor((canceled.completedTimestamp - (canceled.timestamp || Date.now())) / 60000); app.orders = orders; let history = Array.isArray(app.history) ? app.history : []; history.unshift(canceled); app.history = history; renderOwnerPortal(); if (supabase) { supabase.from('orders').update({ status: 'Canceled' }).eq('id', id).then(); } } } }
-        function clearHistoryLogs() { if (confirm("Clear all order history and analytics logs?")) { app.history = []; renderOwnerPortal(); renderAnalytics(); } }
+        function toggleHistoryCollapse() { 
+            const container = document.getElementById('historyCollapseContainer'); 
+            const arrow = document.getElementById('historyArrowIcon'); 
+            container.classList.toggle('hidden'); 
+            arrow.innerText = container.classList.contains('hidden') ? "▼" : "▲"; 
+        }
+
+        function updateOrderStatus(id, newStatus) { 
+            let orders = Array.isArray(app.orders) ? app.orders : []; 
+            const o = orders.find(x => x.id == id); 
+            if (o) { 
+                o.status = newStatus; 
+                app.orders = orders; 
+                renderOwnerPortal(); 
+                if (supabase) { 
+                    supabase.from('orders').update({ status: newStatus }).eq('id', id).then(); 
+                } 
+            } 
+        }
+
+        function completeOrder(id) { 
+            let orders = Array.isArray(app.orders) ? app.orders : []; 
+            const idx = orders.findIndex(x => x.id == id); 
+            if (idx > -1) {
+                const completed = orders.splice(idx, 1)[0]; 
+                completed.status = "Fulfilled"; 
+                completed.completedTimestamp = Date.now();
+                completed.fulfillmentWaitMins = Math.floor((completed.completedTimestamp - (completed.timestamp || Date.now())) / 60000);
+                app.orders = orders; 
+                let history = Array.isArray(app.history) ? app.history : []; 
+                history.unshift(completed); 
+                app.history = history;
+                renderOwnerPortal(); 
+                if (supabase) { 
+                    supabase.from('orders').update({ status: 'Fulfilled' }).eq('id', id).then(); 
+                }
+            } 
+        }
+
+        function cancelOrder(id) { 
+            if (confirm("Cancel this order?")) { 
+                let orders = Array.isArray(app.orders) ? app.orders : []; 
+                const idx = orders.findIndex(x => x.id == id); 
+                if (idx > -1) {
+                    const canceled = orders.splice(idx, 1)[0]; 
+                    canceled.status = "Canceled"; 
+                    canceled.completedTimestamp = Date.now();
+                    canceled.fulfillmentWaitMins = Math.floor((canceled.completedTimestamp - (canceled.timestamp || Date.now())) / 60000);
+                    app.orders = orders; 
+                    let history = Array.isArray(app.history) ? app.history : []; 
+                    history.unshift(canceled); 
+                    app.history = history;
+                    renderOwnerPortal(); 
+                    if (supabase) { 
+                        supabase.from('orders').update({ status: 'Canceled' }).eq('id', id).then(); 
+                    }
+                }
+            } 
+        }
+
+        function clearHistoryLogs() { 
+            if (confirm("Clear all order history and analytics logs?")) { 
+                app.history = []; 
+                renderOwnerPortal(); 
+                renderAnalytics(); 
+            } 
+        }
 
         function renderOwnerMenuEditor() {
-            const container = document.getElementById('ownerMenuList'); if (!container) return; const menu = Array.isArray(app.menu) ? app.menu : [];
-            container.innerHTML = menu.map(item => { const hasSale = item.markdownPrice !== null && item.markdownPrice !== undefined && item.markdownPrice < item.price; return `<div class="bg-zinc-900 border border-zinc-800 p-3.5 rounded-xl flex justify-between items-center text-xs"><div><div class="font-bold text-zinc-100 flex items-center gap-1.5">${item.name} ($${(Number(item.price)||0).toFixed(2)}${hasSale ? ` → <span class="text-tan-400">$${(Number(item.markdownPrice)||0).toFixed(2)} Sale</span>` : ''})</div><div class="text-tan-400 text-[11px] mt-0.5">Prep Time: ${item.prep}</div></div><div class="flex items-center gap-2"><button onclick="openEditMenuModal(${item.id})" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg text-xs font-semibold">Edit</button><button onclick="toggleSoldOut(${item.id})" class="${item.soldOut ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-zinc-800 text-zinc-400'} px-3 py-1.5 rounded-lg text-xs font-semibold">Sold Out</button></div></div>`; }).join('');
+            const container = document.getElementById('ownerMenuList'); 
+            if (!container) return; 
+            const menu = Array.isArray(app.menu) ? app.menu : [];
+            container.innerHTML = menu.map(item => {
+                const hasSale = item.markdownPrice !== null && item.markdownPrice !== undefined && item.markdownPrice < item.price;
+                return `
+                    <div class="bg-zinc-900 border border-zinc-800 p-3.5 rounded-xl flex justify-between items-center text-xs">
+                        <div>
+                            <div class="font-bold text-zinc-100 flex items-center gap-1.5">
+                                ${item.name} ($${(Number(item.price)||0).toFixed(2)}${hasSale ? ` → <span class="text-tan-400">$${(Number(item.markdownPrice)||0).toFixed(2)} Sale</span>` : ''})
+                            </div>
+                            <div class="text-tan-400 text-[11px] mt-0.5">Prep Time: ${item.prep}</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="openEditMenuModal(${item.id})" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg text-xs font-semibold">Edit</button>
+                            <button onclick="toggleSoldOut(${item.id})" class="${item.soldOut ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-zinc-800 text-zinc-400'} px-3 py-1.5 rounded-lg text-xs font-semibold">Sold Out</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        function toggleSoldOut(id) { let menu = Array.isArray(app.menu) ? app.menu : []; const item = menu.find(m => m.id == id); if (item) { item.soldOut = !item.soldOut; app.menu = menu; renderOwnerMenuEditor(); if (supabase) { supabase.from('menu_items').update({ sold_out: item.soldOut }).eq('id', id).then(); } } }
-        function openNewMenuModal() { document.getElementById('editMenuId').value = ""; document.getElementById('editMenuName').value = ""; document.getElementById('editMenuCat').value = "Menu - Mesquite Grilled"; document.getElementById('editMenuPrice').value = ""; document.getElementById('editMenuMarkdown').value = ""; document.getElementById('editMenuDesc').value = ""; document.getElementById('editMenuPrep').value = "3 mins"; document.getElementById('editMenuSoldOut').checked = false; document.getElementById('editMenuModalTitle').innerText = "Add New Menu Item"; document.getElementById('editMenuModal').style.display = 'flex'; }
-        function openEditMenuModal(id) { const menu = Array.isArray(app.menu) ? app.menu : []; const item = menu.find(m => m.id == id); if (!item) return; document.getElementById('editMenuId').value = item.id; document.getElementById('editMenuName').value = item.name; document.getElementById('editMenuCat').value = item.category; document.getElementById('editMenuPrice').value = item.price; document.getElementById('editMenuMarkdown').value = (item.markdownPrice !== null && item.markdownPrice !== undefined) ? item.markdownPrice : ''; document.getElementById('editMenuDesc').value = item.desc; document.getElementById('editMenuPrep').value = item.prep; document.getElementById('editMenuSoldOut').checked = item.soldOut; document.getElementById('editMenuModalTitle').innerText = "Edit Menu Item"; document.getElementById('editMenuModal').style.display = 'flex'; }
-        function closeEditMenuModal() { document.getElementById('editMenuModal').style.display = 'none'; }
+        function toggleSoldOut(id) { 
+            let menu = Array.isArray(app.menu) ? app.menu : []; 
+            const item = menu.find(m => m.id == id); 
+            if (item) {
+                item.soldOut = !item.soldOut; 
+                app.menu = menu; 
+                renderOwnerMenuEditor();
+                if (supabase) { 
+                    supabase.from('menu_items').update({ sold_out: item.soldOut }).eq('id', id).then(); 
+                } 
+            } 
+        }
+
+        function openNewMenuModal() {
+            document.getElementById('editMenuId').value = ""; 
+            document.getElementById('editMenuName').value = ""; 
+            document.getElementById('editMenuCat').value = "Menu - Mesquite Grilled";
+            document.getElementById('editMenuPrice').value = ""; 
+            document.getElementById('editMenuMarkdown').value = ""; 
+            document.getElementById('editMenuDesc').value = "";
+            document.getElementById('editMenuPrep').value = "3 mins"; 
+            document.getElementById('editMenuSoldOut').checked = false;
+            document.getElementById('editMenuModalTitle').innerText = "Add New Menu Item"; 
+            document.getElementById('editMenuModal').style.display = 'flex';
+        }
+
+        function openEditMenuModal(id) {
+            const menu = Array.isArray(app.menu) ? app.menu : []; 
+            const item = menu.find(m => m.id == id); 
+            if (!item) return;
+            document.getElementById('editMenuId').value = item.id; 
+            document.getElementById('editMenuName').value = item.name; 
+            document.getElementById('editMenuCat').value = item.category;
+            document.getElementById('editMenuPrice').value = item.price; 
+            document.getElementById('editMenuMarkdown').value = (item.markdownPrice !== null && item.markdownPrice !== undefined) ? item.markdownPrice : '';
+            document.getElementById('editMenuDesc').value = item.desc; 
+            document.getElementById('editMenuPrep').value = item.prep; 
+            document.getElementById('editMenuSoldOut').checked = item.soldOut;
+            document.getElementById('editMenuModalTitle').innerText = "Edit Menu Item"; 
+            document.getElementById('editMenuModal').style.display = 'flex';
+        }
+
+        function closeEditMenuModal() { 
+            document.getElementById('editMenuModal').style.display = 'none'; 
+        }
 
         function saveEditedMenuItem() {
-            const id = document.getElementById('editMenuId').value; const name = document.getElementById('editMenuName').value.trim(); const category = document.getElementById('editMenuCat').value.trim(); const price = parseFloat(document.getElementById('editMenuPrice').value); const markdownInput = document.getElementById('editMenuMarkdown').value.trim(); const markdownPrice = markdownInput !== '' ? parseFloat(markdownInput) : null; const desc = document.getElementById('editMenuDesc').value.trim(); const prep = document.getElementById('editMenuPrep').value.trim(); const soldOut = document.getElementById('editMenuSoldOut').checked;
+            const id = document.getElementById('editMenuId').value; 
+            const name = document.getElementById('editMenuName').value.trim();
+            const category = document.getElementById('editMenuCat').value.trim(); 
+            const price = parseFloat(document.getElementById('editMenuPrice').value);
+            const markdownInput = document.getElementById('editMenuMarkdown').value.trim(); 
+            const markdownPrice = markdownInput !== '' ? parseFloat(markdownInput) : null;
+            const desc = document.getElementById('editMenuDesc').value.trim(); 
+            const prep = document.getElementById('editMenuPrep').value.trim(); 
+            const soldOut = document.getElementById('editMenuSoldOut').checked;
+            
             if (!name || isNaN(price)) { alert("Provide a valid name and price"); return; }
-            let menu = Array.isArray(app.menu) ? app.menu : []; const generatedId = Date.now();
-            if (id) { const item = menu.find(m => m.id == id); if (item) { item.name = name; item.category = category; item.price = price; item.markdownPrice = markdownPrice; item.desc = desc; item.prep = prep; item.soldOut = soldOut; } } else { const newItem = { id: generatedId, category, name, price, markdownPrice, desc, prep, soldOut, hasMeat: category.toLowerCase().includes('taco') || name.toLowerCase().includes('taco') }; menu.push(newItem); }
-            app.menu = menu; closeEditMenuModal(); renderOwnerMenuEditor();
-            if (supabase) { const cloudObj = { id: id || generatedId, name: name, category: category, price: price, prep_time: prep, sold_out: soldOut }; if (id) supabase.from('menu_items').update(cloudObj).eq('id', id).then(); else supabase.from('menu_items').insert([cloudObj]).then(); }
+            
+            let menu = Array.isArray(app.menu) ? app.menu : []; 
+            const generatedId = Date.now();
+            
+            if (id) {
+                const item = menu.find(m => m.id == id);
+                if (item) {
+                    item.name = name; 
+                    item.category = category; 
+                    item.price = price; 
+                    item.markdownPrice = markdownPrice; 
+                    item.desc = desc; 
+                    item.prep = prep; 
+                    item.soldOut = soldOut;
+                }
+            } else {
+                const newItem = {
+                    id: generatedId,
+                    category,
+                    name,
+                    price,
+                    markdownPrice,
+                    desc,
+                    prep,
+                    soldOut,
+                    hasMeat: category.toLowerCase().includes('taco') || name.toLowerCase().includes('taco')
+                };
+                menu.push(newItem);
+            }
+            app.menu = menu; 
+            closeEditMenuModal(); 
+            renderOwnerMenuEditor();
+            
+            if (supabase) {
+                const cloudObj = { id: id || generatedId, name: name, category: category, price: price, prep_time: prep, sold_out: soldOut };
+                if (id) supabase.from('menu_items').update(cloudObj).eq('id', id).then();
+                else supabase.from('menu_items').insert([cloudObj]).then();
+            }
         }
 
         function renderLocationManagerList() {
-            const ownerContainer = document.getElementById('ownerLocationList'); const locations = Array.isArray(app.locations) ? app.locations : []; const activeId = app.activeLocationId;
-            const html = locations.map(l => `<div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex justify-between items-center text-xs"><div><div class="font-bold text-zinc-200">${l.name} <input type="radio" name="activeLocRadio" ${l.id === activeId ? 'checked' : ''} onchange="setActiveLocation(${l.id})" class="ml-2 accent-tan-500"> Active</div><div class="text-zinc-400 text-[11px] mt-0.5">${l.address}</div></div><div class="flex gap-2"><button onclick="openEditLocationModal(${l.id})" class="bg-zinc-800 hover:bg-zinc-700 px-2.5 py-1 rounded text-xs">Edit</button>${locations.length > 1 ? `<button onclick="deleteLocation(${l.id})" class="text-rose-400 hover:underline">Delete</button>` : ''}</div></div>`).join('');
+            const ownerContainer = document.getElementById('ownerLocationList'); 
+            const locations = Array.isArray(app.locations) ? app.locations : []; 
+            const activeId = app.activeLocationId;
+            const html = locations.map(l => `
+                <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex justify-between items-center text-xs">
+                    <div>
+                        <div class="font-bold text-zinc-200">
+                            ${l.name} <input type="radio" name="activeLocRadio" ${l.id === activeId ? 'checked' : ''} onchange="setActiveLocation(${l.id})" class="ml-2 accent-tan-500"> Active
+                        </div>
+                        <div class="text-zinc-400 text-[11px] mt-0.5">${l.address}</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="openEditLocationModal(${l.id})" class="bg-zinc-800 hover:bg-zinc-700 px-2.5 py-1 rounded text-xs">Edit</button>
+                        ${locations.length > 1 ? `<button onclick="deleteLocation(${l.id})" class="text-rose-400 hover:underline">Delete</button>` : ''}
+                    </div>
+                </div>
+            `).join('');
             if (ownerContainer) ownerContainer.innerHTML = html;
         }
 
-        function setActiveLocation(id) { app.activeLocationId = id; renderLocationManagerList(); }
-        function saveNewLocation() { const name = document.getElementById('newLocName').value.trim(); const address = document.getElementById('newLocAddress').value.trim(); if (!name || !address) { alert("Fill out both location fields"); return; } let locations = Array.isArray(app.locations) ? app.locations : []; locations.push({ id: Date.now(), name, address }); app.locations = locations; document.getElementById('newLocName').value = ''; document.getElementById('newLocAddress').value = ''; renderLocationManagerList(); }
-        function openEditLocationModal(id) { const locations = Array.isArray(app.locations) ? app.locations : []; const loc = locations.find(l => l.id === id); if (!loc) return; document.getElementById('editLocId').value = loc.id; document.getElementById('editLocName').value = loc.name; document.getElementById('editLocAddress').value = loc.address; document.getElementById('editLocationModal').style.display = 'flex'; }
-        function closeEditLocationModal() { document.getElementById('editLocationModal').style.display = 'none'; }
-        function saveEditedLocation() { const id = parseInt(document.getElementById('editLocId').value); const name = document.getElementById('editLocName').value.trim(); const address = document.getElementById('editLocAddress').value.trim(); if (!name || !address) return; let locations = Array.isArray(app.locations) ? app.locations : []; const loc = locations.find(l => l.id === id); if (loc) { loc.name = name; loc.address = address; app.locations = locations; } closeEditLocationModal(); renderLocationManagerList(); }
-        function deleteLocation(id) { let locations = Array.isArray(app.locations) ? app.locations : []; locations = locations.filter(l => l.id !== id); app.locations = locations; if(app.activeLocationId === id && locations.length > 0) app.activeLocationId = locations[0].id; renderLocationManagerList(); }
+        function setActiveLocation(id) { 
+            app.activeLocationId = id; 
+            renderLocationManagerList(); 
+        }
+
+        function saveNewLocation() {
+            const name = document.getElementById('newLocName').value.trim(); 
+            const address = document.getElementById('newLocAddress').value.trim();
+            if (!name || !address) { alert("Fill out both location fields"); return; }
+            let locations = Array.isArray(app.locations) ? app.locations : []; 
+            locations.push({ id: Date.now(), name, address }); 
+            app.locations = locations;
+            document.getElementById('newLocName').value = ''; 
+            document.getElementById('newLocAddress').value = ''; 
+            renderLocationManagerList();
+        }
+
+        function openEditLocationModal(id) {
+            const locations = Array.isArray(app.locations) ? app.locations : []; 
+            const loc = locations.find(l => l.id === id); 
+            if (!loc) return;
+            document.getElementById('editLocId').value = loc.id; 
+            document.getElementById('editLocName').value = loc.name; 
+            document.getElementById('editLocAddress').value = loc.address; 
+            document.getElementById('editLocationModal').style.display = 'flex';
+        }
+
+        function closeEditLocationModal() { 
+            document.getElementById('editLocationModal').style.display = 'none'; 
+        }
+
+        function saveEditedLocation() {
+            const id = parseInt(document.getElementById('editLocId').value); 
+            const name = document.getElementById('editLocName').value.trim(); 
+            const address = document.getElementById('editLocAddress').value.trim();
+            if (!name || !address) return;
+            let locations = Array.isArray(app.locations) ? app.locations : []; 
+            const loc = locations.find(l => l.id === id);
+            if (loc) {
+                loc.name = name; 
+                loc.address = address; 
+                app.locations = locations;
+            }
+            closeEditLocationModal(); 
+            renderLocationManagerList();
+        }
+
+        function deleteLocation(id) { 
+            let locations = Array.isArray(app.locations) ? app.locations : []; 
+            locations = locations.filter(l => l.id !== id); 
+            app.locations = locations;
+            if(app.activeLocationId === id && locations.length > 0) {
+                app.activeLocationId = locations[0].id;
+            }
+            renderLocationManagerList(); 
+        }
 
         function renderAnalytics() {
-            const history = Array.isArray(app.history) ? app.history : []; const fulfilled = history.filter(h => h.status === 'Fulfilled'); const totalRev = fulfilled.reduce((sum, h) => sum + (Number(h.total)||0), 0);
-            document.getElementById('statDaily').innerText = `$${totalRev.toFixed(2)}`; document.getElementById('statWeekly').innerText = `$${totalRev.toFixed(2)}`; document.getElementById('statMonthly').innerText = `$${totalRev.toFixed(2)}`; document.getElementById('statYearly').innerText = `$${totalRev.toFixed(2)}`;
-            const allFinished = history.filter(h => h.fulfillmentWaitMins !== undefined); let avgWait = 0; if (allFinished.length > 0) { const totalMins = allFinished.reduce((sum, h) => sum + (Number(h.fulfillmentWaitMins)||0), 0); avgWait = Math.round(totalMins / allFinished.length); }
+            const history = Array.isArray(app.history) ? app.history : []; 
+            const fulfilled = history.filter(h => h.status === 'Fulfilled'); 
+            const totalRev = fulfilled.reduce((sum, h) => sum + (Number(h.total)||0), 0);
+            
+            document.getElementById('statDaily').innerText = `$${totalRev.toFixed(2)}`;
+            document.getElementById('statWeekly').innerText = `$${totalRev.toFixed(2)}`;
+            document.getElementById('statMonthly').innerText = `$${totalRev.toFixed(2)}`;
+            document.getElementById('statYearly').innerText = `$${totalRev.toFixed(2)}`;
+
+            const allFinished = history.filter(h => h.fulfillmentWaitMins !== undefined); 
+            let avgWait = 0;
+            if (allFinished.length > 0) {
+                const totalMins = allFinished.reduce((sum, h) => sum + (Number(h.fulfillmentWaitMins)||0), 0);
+                avgWait = Math.round(totalMins / allFinished.length);
+            }
             document.getElementById('statAvgWait').innerText = `${avgWait} mins`;
+
             const highestBriefContainer = document.getElementById('highestWaitBriefList');
-            if (highestBriefContainer) { if (allFinished.length === 0) highestBriefContainer.innerHTML = `<div class="text-zinc-500 text-[11px]">No completed orders with wait time data yet.</div>`; else { const sortedByWait = [...allFinished].sort((a, b) => (Number(b.fulfillmentWaitMins)||0) - (Number(a.fulfillmentWaitMins)||0)).slice(0, 3); highestBriefContainer.innerHTML = sortedByWait.map(o => `<div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-800 text-[11px]"><span class="font-mono text-zinc-300">#${o.id} (${o.name})</span><span class="font-bold text-amber-400">${Number(o.fulfillmentWaitMins)||0} mins wait</span></div>`).join(''); } }
+            if (highestBriefContainer) {
+                if (allFinished.length === 0) {
+                    highestBriefContainer.innerHTML = `<div class="text-zinc-500 text-[11px]">No completed orders with wait time data yet.</div>`;
+                } else {
+                    const sortedByWait = [...allFinished].sort((a, b) => (Number(b.fulfillmentWaitMins)||0) - (Number(a.fulfillmentWaitMins)||0)).slice(0, 3);
+                    highestBriefContainer.innerHTML = sortedByWait.map(o => `
+                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-800 text-[11px]">
+                            <span class="font-mono text-zinc-300">#${o.id} (${o.name})</span>
+                            <span class="font-bold text-amber-400">${Number(o.fulfillmentWaitMins)||0} mins wait</span>
+                        </div>
+                    `).join('');
+                }
+            }
         }
     </script>
 </body>
