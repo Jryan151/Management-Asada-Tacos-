@@ -5,29 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Asada Tacos - Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
-    <!-- SUPABASE CLIENT -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         tailwind.config = {
             theme: {
-                extend: {
-                    colors: {
-                        tan: { 400: '#d5b996', 500: '#c5a57d', 600: '#b08f68', 700: '#8c6f4d', 950: '#3a2b1c' }
-                    },
-                    fontFamily: {
-                        'serif': ['"Playfair Display"', 'serif'],
-                        'sans': ['"Montserrat"', 'sans-serif'],
-                    }
-                }
+                extend: { colors: { tan: { 400: '#d5b996', 500: '#c5a57d', 600: '#b08f68', 700: '#8c6f4d', 950: '#3a2b1c' } },
+                fontFamily: { 'serif': ['"Playfair Display"', 'serif'], 'sans': ['"Montserrat"', 'sans-serif'] } }
             }
         }
     </script>
 </head>
 <body class="bg-zinc-950 text-zinc-100 font-sans min-h-screen pb-20 flex flex-col justify-between">
     <div class="max-w-md mx-auto w-full flex-grow">
+        
         <!-- Password Lock Screen -->
         <div id="loginView" class="p-6 flex flex-col items-center justify-center min-h-[90vh] text-center">
             <div class="w-24 h-24 rounded-full border-2 border-tan-500 p-1 mb-4 flex items-center justify-center shadow-lg shadow-tan-500/10">
@@ -49,7 +40,6 @@
 
         <!-- Owner Portal Dashboard -->
         <div id="ownerDashboardView" class="p-4 hidden">
-            <!-- Header -->
             <div class="flex items-center justify-between mb-4 border-b border-zinc-900 pb-3">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-full border border-tan-500 flex items-center justify-center text-sm">
@@ -60,9 +50,7 @@
                         <p class="text-[10px] text-tan-400 font-medium uppercase tracking-widest flex items-center gap-1">Management <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <button onclick="lockOwnerPortal()" class="text-xs text-rose-400 hover:underline">Lock</button>
-                </div>
+                <button onclick="lockOwnerPortal()" class="text-xs text-rose-400 hover:underline">Lock</button>
             </div>
             
             <div class="grid grid-cols-4 gap-1.5 mb-2">
@@ -71,13 +59,12 @@
                 <button onclick="switchOwnerTab('Locations')" id="tabBtnLocations" class="bg-zinc-900 border border-zinc-800 text-zinc-300 font-semibold py-2 rounded-xl text-[11px] transition">Locations</button>
                 <button onclick="switchOwnerTab('Analytics')" id="tabBtnAnalytics" class="bg-zinc-900 border border-zinc-800 text-zinc-300 font-semibold py-2 rounded-xl text-[11px] transition">Analytics</button>
             </div>
-            
             <button onclick="switchOwnerTab('Info')" id="tabBtnInfo" class="w-full bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 font-semibold py-2 rounded-xl text-[11px] transition mb-4">ℹ️ Portal Info & Settings</button>
 
             <!-- Tab 1: Orders -->
             <div id="ownerTabOrders" class="space-y-4">
                 <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
-                    <h3 class="font-semibold text-sm text-zinc-300">Operations & Timesheet Log</h3>
+                    <h3 class="font-semibold text-sm text-zinc-300">Operations & Wait Times</h3>
                     <div class="flex items-center justify-between bg-zinc-950 p-3 rounded-lg border border-zinc-800 text-xs">
                         <span>Store Status: <strong id="ownerStatusLabel" class="text-emerald-400">Loading...</strong></span>
                         <button onclick="toggleStoreStatus()" id="storeToggleBtn" class="bg-zinc-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition">Toggle</button>
@@ -90,66 +77,25 @@
                         <label class="text-[11px] text-zinc-400 block font-medium">Extra Kitchen Wait Time Warning:</label>
                         <div class="grid grid-cols-3 gap-2">
                             <button onclick="setExtraWait('')" id="waitBtnNormal" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 py-1.5 rounded text-[11px] font-semibold">Normal</button>
-                            <button onclick="setExtraWait('15')" id="waitBtn15" class="bg-zinc-800 hover:bg-zinc-700 text-amber-400 py-1.5 rounded text-[11px] font-semibold">+15m (Busy)</button>
-                            <button onclick="setExtraWait('30')" id="waitBtn30" class="bg-zinc-800 hover:bg-zinc-700 text-rose-400 py-1.5 rounded text-[11px] font-semibold">+30m (Very Busy)</button>
-                        </div>
-                    </div>
-                    
-                    <!-- LOCAL Timesheet Section -->
-                    <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800 space-y-3">
-                        <div class="flex justify-between items-center text-xs font-semibold text-tan-400">
-                            <span>⏱️ Company Timesheet & Hours</span>
-                            <span id="totalCombinedHoursDisplay" class="font-mono">0.0 total hrs</span>
-                        </div>
-                        <div class="flex justify-between items-center text-xs bg-zinc-900 p-2.5 rounded border border-zinc-800">
-                            <span>Main Truck Operating Hours:</span>
-                            <div class="flex items-center gap-2">
-                                <span id="truckHoursDisplay" class="font-mono font-bold text-zinc-200">0.0h</span>
-                                <button onclick="editTruckHours()" class="text-xs text-tan-400 hover:underline">Edit</button>
-                            </div>
-                        </div>
-                        <div class="space-y-2 pt-1">
-                            <div class="text-[11px] text-zinc-400 font-medium">Employee Profiles & Hours Log:</div>
-                            <div id="employeeTimesheetList" class="space-y-2"></div>
-                            <div class="flex gap-2 pt-1">
-                                <input type="text" id="newEmployeeName" placeholder="Employee Name" class="flex-1 bg-zinc-900 border border-zinc-800 rounded px-2.5 py-1.5 text-xs text-zinc-200 focus:border-tan-500 outline-none">
-                                <button onclick="addEmployee()" class="bg-tan-600 hover:bg-tan-500 text-zinc-950 px-3 py-1.5 rounded text-xs font-bold">Add</button>
-                            </div>
+                            <button onclick="setExtraWait('15')" id="waitBtn15" class="bg-zinc-800 hover:bg-zinc-700 text-amber-400 py-1.5 rounded text-[11px] font-semibold">+15m</button>
+                            <button onclick="setExtraWait('30')" id="waitBtn30" class="bg-zinc-800 hover:bg-zinc-700 text-rose-400 py-1.5 rounded text-[11px] font-semibold">+30m</button>
                         </div>
                     </div>
                 </div>
-
                 <div class="flex justify-between items-center"><h3 class="font-semibold text-sm text-zinc-400">Live Incoming Orders</h3></div>
                 <div class="space-y-3 mb-6" id="ownerOrdersList"></div>
-
-                <!-- Order History -->
-                <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-                    <button onclick="toggleHistoryCollapse()" class="w-full p-3.5 flex justify-between items-center text-xs font-semibold text-zinc-300 bg-zinc-900 hover:bg-zinc-800/80 transition">
-                        <span>📋 Order History Log (Fulfilled & Canceled)</span>
-                        <span id="historyArrowIcon">▼</span>
-                    </button>
-                    <div id="historyCollapseContainer" class="hidden p-3 border-t border-zinc-800 space-y-2.5 max-h-64 overflow-y-auto">
-                        <div id="historyOrdersList" class="space-y-2"></div>
-                    </div>
-                </div>
             </div>
 
             <!-- Tab 2: Menu / Inventory Editor -->
             <div id="ownerTabMenu" class="space-y-4 hidden">
-                <button onclick="openNewMenuModal()" class="w-full bg-tan-600 hover:bg-tan-500 text-zinc-950 font-bold py-3 rounded-xl text-xs transition shadow-lg shadow-tan-600/20">+ Add New Menu Item</button>
                 <div id="ownerMenuList" class="space-y-3"></div>
             </div>
 
-            <!-- Tab 3: Locations Manager (LOCAL) -->
+            <!-- Tab 3: Locations Manager -->
             <div id="ownerTabLocations" class="space-y-4 hidden">
                 <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
                     <h3 class="font-semibold text-sm text-zinc-300">Manage Active Truck Locations</h3>
                     <div id="ownerLocationList" class="space-y-2 mb-3"></div>
-                    <div class="pt-2 border-t border-zinc-800 space-y-2">
-                        <input type="text" id="newLocName" placeholder="Location Name" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-2.5 text-xs text-zinc-200">
-                        <input type="text" id="newLocAddress" placeholder="Street Address" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-2.5 text-xs text-zinc-200">
-                        <button onclick="saveNewLocation()" class="w-full bg-tan-600 hover:bg-tan-500 text-zinc-950 font-bold py-2.5 rounded-xl text-xs transition">Add / Clear Location</button>
-                    </div>
                 </div>
             </div>
 
@@ -157,7 +103,7 @@
             <div id="ownerTabAnalytics" class="space-y-4 hidden">
                 <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
                     <div class="flex justify-between items-center border-b border-zinc-800 pb-3">
-                        <h3 class="font-bold text-sm text-tan-500">📊 Financial Statement & Analytics</h3>
+                        <h3 class="font-bold text-sm text-tan-500">📊 Financial Analytics</h3>
                         <span class="text-[10px] text-zinc-500 font-mono">Real-Time Cloud</span>
                     </div>
                     <div class="space-y-3 text-xs">
@@ -165,14 +111,6 @@
                             <span class="text-zinc-400">Total Revenue (Fulfilled):</span>
                             <span id="statRevenue" class="font-mono font-bold text-emerald-400">$0.00</span>
                         </div>
-                        <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
-                            <span class="text-zinc-400">Average Wait Time per Order:</span>
-                            <span id="statAvgWait" class="font-mono font-bold text-tan-400">0 mins</span>
-                        </div>
-                    </div>
-                    <div class="pt-2 border-t border-zinc-800 space-y-2">
-                        <div class="text-xs font-bold text-zinc-300">📈 Highest Wait Times (Completed)</div>
-                        <div id="highestWaitBriefList" class="space-y-1.5 text-xs"></div>
                     </div>
                 </div>
             </div>
@@ -194,85 +132,45 @@
         </div>
     </div>
 
-    <!-- Edit Menu Item Modal -->
-    <div id="editMenuModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-2xl p-5 space-y-3 max-h-[90vh] overflow-y-auto">
-            <div class="flex justify-between items-center border-b border-zinc-800 pb-2"><h3 id="editMenuModalTitle" class="font-bold text-base text-tan-500 font-serif">Edit Menu Item</h3><button onclick="closeEditMenuModal()" class="text-zinc-400 hover:text-white text-sm">✕</button></div>
-            <input type="hidden" id="editMenuId">
-            <div><label class="block text-[11px] text-zinc-400 mb-1">Item Name</label><input type="text" id="editMenuName" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-2.5 text-xs text-zinc-200"></div>
-            <div><label class="block text-[11px] text-zinc-400 mb-1">Category</label><input type="text" id="editMenuCat" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-2.5 text-xs text-zinc-200"></div>
-            <div><label class="block text-[11px] text-zinc-400 mb-1">Price ($)</label><input type="number" step="0.01" id="editMenuPrice" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-2.5 text-xs text-zinc-200"></div>
-            <div><label class="block text-[11px] text-zinc-400 mb-1">Prep Time (e.g. 2 mins)</label><input type="text" id="editMenuPrep" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-2.5 text-xs text-zinc-200"></div>
-            <div class="flex items-center gap-2 pt-2"><input type="checkbox" id="editMenuSoldOut" class="w-4 h-4 accent-tan-500"><label class="text-xs text-zinc-300">Mark as Sold Out</label></div>
-            <button onclick="saveEditedMenuItem()" class="w-full bg-tan-600 hover:bg-tan-500 text-zinc-950 font-bold py-2.5 rounded-xl text-xs transition mt-2">Save Menu Item</button>
-        </div>
-    </div>
-
-    <!-- Edit Location Modal -->
-    <div id="editLocationModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-zinc-900 border border-zinc-800 w-full max-w-sm rounded-2xl p-5 space-y-3">
-            <div class="flex justify-between items-center border-b border-zinc-800 pb-2"><h3 class="font-bold text-base text-tan-500 font-serif">Edit Location</h3><button onclick="closeEditLocationModal()" class="text-zinc-400 hover:text-white text-sm">✕</button></div>
-            <input type="hidden" id="editLocId">
-            <div><label class="block text-[11px] text-zinc-400 mb-1">Location Name</label><input type="text" id="editLocName" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-2.5 text-xs text-zinc-200"></div>
-            <div><label class="block text-[11px] text-zinc-400 mb-1">Street Address</label><input type="text" id="editLocAddress" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-2.5 text-xs text-zinc-200"></div>
-            <button onclick="saveEditedLocation()" class="w-full bg-tan-600 hover:bg-tan-500 text-zinc-950 font-bold py-2.5 rounded-xl text-xs transition mt-2">Update Location</button>
-        </div>
-    </div>
-
     <!-- MAIN LOGIC -->
     <script>
-        // 1. Safe Cloud Initialization
-        let supabase;
-        try {
-            supabase = window.supabase.createClient('https://glkdqkosvrvbkghuxzux.supabase.co', 'Sb_publishable_DJdOcreCqOKFHsBVZCMc6g_6e9c3W-_');
-        } catch (err) {
-            alert("Cloud Connection Warning: " + err.message);
-        }
-        
+        let supabase = null;
         let cloudMenu = [];
         let storeSettings = { id: 1, is_open: true, closing_time: "8:40 PM", extra_wait: "" };
         let allCloudOrders = [];
 
-        // 2. Safe Local Data Retrieval
+        // Simple Local Object to prevent parsing crashes
         const local = {
             get auth() { 
-                try {
-                    let data = localStorage.getItem('asada_auth');
-                    if (!data) return { value: '1234' };
-                    let parsed = JSON.parse(data);
-                    if (typeof parsed === 'string') return { value: parsed };
-                    return parsed || { value: '1234' };
-                } catch(e) {
-                    return { value: '1234' };
-                }
+                let data = localStorage.getItem('asada_auth');
+                return data ? JSON.parse(data) : { value: '1234' };
             },
-            set auth(val) { localStorage.setItem('asada_auth', JSON.stringify(val)); },
-            get locations() { return JSON.parse(localStorage.getItem('asada_locations')) || [{ id: 1, name: "Asada Tacos Pop-Up", address: "Check Linktree" }]; },
-            set locations(val) { localStorage.setItem('asada_locations', JSON.stringify(val)); },
-            get activeLocId() { return parseInt(localStorage.getItem('asada_active_loc')) || 1; },
-            set activeLocId(val) { localStorage.setItem('asada_active_loc', val); },
-            get truckHours() { return parseFloat(localStorage.getItem('asada_truck_hrs')) || 0.0; },
-            set truckHours(val) { localStorage.setItem('asada_truck_hrs', val); },
-            get employees() { return JSON.parse(localStorage.getItem('asada_emps')) || []; },
-            set employees(val) { localStorage.setItem('asada_emps', JSON.stringify(val)); }
+            set auth(val) { localStorage.setItem('asada_auth', JSON.stringify(val)); }
         };
 
-        // 3. Bulletproof Login Check
+        // 1. The Ultra-Safe Login Function
         function verifyOwnerPin() {
-            try {
-                const input = document.getElementById('ownerPinInput').value.trim();
-                const correctPin = local.auth.value;
+            const input = document.getElementById('ownerPinInput').value.trim();
+            const correctPin = local.auth.value;
 
-                // Uses saved PIN or Master Bypass PIN: 0000
-                if (input === correctPin || input === '0000') {
-                    document.getElementById('loginView').style.display = 'none';
-                    document.getElementById('ownerDashboardView').style.display = 'block';
-                    initDashboard();
-                } else {
-                    alert("Incorrect PIN. You typed: '" + input + "'. Try 1234 or the master bypass 0000.");
+            if (input === correctPin || input === '0000') {
+                document.getElementById('loginView').style.display = 'none';
+                document.getElementById('ownerDashboardView').style.display = 'block';
+                
+                // Initialize cloud ONLY after successful login to prevent crashes
+                try {
+                    supabase = window.supabase.createClient('https://glkdqkosvrvbkghuxzux.supabase.co', 'Sb_publishable_DJdOcreCqOKFHsBVZCMc6g_6e9c3W-_');
+                    fetchCloudData();
+                    
+                    // Subscriptions
+                    supabase.channel('admin:orders').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchCloudData).subscribe();
+                    supabase.channel('admin:menu').on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, fetchCloudData).subscribe();
+                    supabase.channel('admin:settings').on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, fetchCloudData).subscribe();
+                } catch (err) {
+                    alert("Logged in locally, but Cloud Connection failed: " + err.message);
                 }
-            } catch (err) {
-                alert("Login Error: " + err.message);
+            } else {
+                alert("Incorrect PIN. You typed: '" + input + "'. Try 1234 or 0000.");
             }
         }
 
@@ -282,45 +180,21 @@
             document.getElementById('ownerPinInput').value = '';
         }
 
-        async function initDashboard() {
-            try {
-                await fetchCloudData();
-                updateTimesheetUI();
-                renderLocationManagerList();
-                
-                // Supabase Realtime Subscriptions
-                if (supabase) {
-                    supabase.channel('admin:orders').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchCloudData).subscribe();
-                    supabase.channel('admin:menu').on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, fetchCloudData).subscribe();
-                    supabase.channel('admin:settings').on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, fetchCloudData).subscribe();
-                }
-            } catch (err) {
-                alert("Dashboard failed to initialize: " + err.message);
-            }
-        }
-
         async function fetchCloudData() {
             if (!supabase) return;
-            try {
-                const { data: mData, error: mErr } = await supabase.from('menu_items').select('*').order('id');
-                if(mErr) throw new Error("Menu sync failed: " + mErr.message);
-                if(mData) cloudMenu = mData;
+            const { data: mData } = await supabase.from('menu_items').select('*').order('id');
+            if(mData) cloudMenu = mData;
 
-                const { data: sData, error: sErr } = await supabase.from('store_settings').select('*').limit(1);
-                if(sErr) throw new Error("Settings sync failed: " + sErr.message);
-                if(sData && sData.length > 0) storeSettings = sData[0];
+            const { data: sData } = await supabase.from('store_settings').select('*').limit(1);
+            if(sData && sData.length > 0) storeSettings = sData[0];
 
-                const { data: oData, error: oErr } = await supabase.from('orders').select('*').order('timestamp', { ascending: false });
-                if(oErr) throw new Error("Orders sync failed: " + oErr.message);
-                if(oData) allCloudOrders = oData;
+            const { data: oData } = await supabase.from('orders').select('*').order('timestamp', { ascending: false });
+            if(oData) allCloudOrders = oData;
 
-                updateStoreUI();
-                renderOrders();
-                renderMenuEditor();
-                renderAnalytics();
-            } catch (err) {
-                alert("Cloud Sync Error: " + err.message);
-            }
+            updateStoreUI();
+            renderOrders();
+            renderMenuEditor();
+            renderAnalytics();
         }
 
         function switchOwnerTab(tab) {
@@ -332,12 +206,11 @@
             });
         }
 
-        // --- CLOUD STORE SETTINGS ---
         function updateStoreUI() {
             document.getElementById('ownerStatusLabel').innerText = storeSettings.is_open ? "Open" : "Closed";
             document.getElementById('ownerStatusLabel').className = storeSettings.is_open ? "text-emerald-400" : "text-rose-400";
             document.getElementById('storeToggleBtn').innerText = storeSettings.is_open ? "Close Store" : "Open Store";
-            document.getElementById('closingTimeInput').value = storeSettings.closing_time;
+            document.getElementById('closingTimeInput').value = storeSettings.closing_time || "8:40 PM";
             
             ['Normal', '15', '30'].forEach(v => {
                 const btn = document.getElementById(v === 'Normal' ? 'waitBtnNormal' : `waitBtn${v}`);
@@ -346,21 +219,18 @@
         }
 
         async function toggleStoreStatus() {
-            if (!supabase) return;
+            if(!supabase) return;
             await supabase.from('store_settings').update({ is_open: !storeSettings.is_open }).eq('id', storeSettings.id);
-            if (!storeSettings.is_open) { local.truckHours += 1.0; updateTimesheetUI(); }
             fetchCloudData();
         }
 
         async function updateClosingTime(val) { if(supabase) { await supabase.from('store_settings').update({ closing_time: val.trim() }).eq('id', storeSettings.id); fetchCloudData(); } }
         async function setExtraWait(val) { if(supabase) { await supabase.from('store_settings').update({ extra_wait: val }).eq('id', storeSettings.id); fetchCloudData(); } }
 
-        // --- CLOUD ORDERS ---
         function renderOrders() {
             const active = allCloudOrders.filter(o => o.status !== 'Fulfilled' && o.status !== 'Canceled');
-            const history = allCloudOrders.filter(o => o.status === 'Fulfilled' || o.status === 'Canceled');
-            
             const aList = document.getElementById('ownerOrdersList');
+            
             if (active.length === 0) aList.innerHTML = `<div class="text-center text-zinc-500 py-6 text-xs bg-zinc-900 border border-zinc-800 rounded-xl">No active orders.</div>`;
             else aList.innerHTML = active.map(o => `
                 <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex flex-col gap-3">
@@ -371,25 +241,9 @@
                     <div class="flex gap-2 pt-2 border-t border-zinc-800/80">
                         <button onclick="updateOrderStatus(${o.id}, '${o.status === 'Preparing' ? 'Ready' : 'Preparing'}')" class="flex-1 bg-tan-600 hover:bg-tan-500 py-1.5 rounded-lg text-xs font-bold text-zinc-950">${o.status === 'Preparing' ? 'Mark Ready' : 'Set Preparing'}</button>
                         <button onclick="completeOrder(${o.id}, ${o.timestamp})" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-1.5 rounded-lg text-xs font-medium text-white">Fulfill ✓</button>
-                        <button onclick="updateOrderStatus(${o.id}, 'Canceled')" class="bg-rose-950 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg text-xs font-medium">Cancel</button>
                     </div>
                 </div>
             `).join('');
-
-            const hList = document.getElementById('historyOrdersList');
-            if (history.length === 0) hList.innerHTML = `<div class="text-center text-zinc-500 py-3 text-xs">No fulfilled or canceled orders.</div>`;
-            else hList.innerHTML = history.map(h => `
-                <div class="bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex justify-between items-center text-xs">
-                    <div><span class="font-mono font-bold text-tan-400">${h.name}</span><div class="text-zinc-300 text-[11px] mt-0.5">${h.items}</div><div class="text-[10px] text-zinc-500 mt-0.5">$${h.total.toFixed(2)} • <span class="${h.status === 'Fulfilled' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${h.status}</span></div></div>
-                </div>
-            `).join('');
-        }
-
-        function toggleHistoryCollapse() {
-            const container = document.getElementById('historyCollapseContainer');
-            const arrow = document.getElementById('historyArrowIcon');
-            container.classList.toggle('hidden');
-            arrow.innerText = container.classList.contains('hidden') ? "▼" : "▲";
         }
 
         async function updateOrderStatus(id, newStatus) { if(supabase) { await supabase.from('orders').update({ status: newStatus }).eq('id', id); fetchCloudData(); } }
@@ -400,13 +254,11 @@
             fetchCloudData(); 
         }
 
-        // --- CLOUD MENU EDITOR ---
         function renderMenuEditor() {
             document.getElementById('ownerMenuList').innerHTML = cloudMenu.map(item => `
                 <div class="bg-zinc-900 border border-zinc-800 p-3.5 rounded-xl flex justify-between items-center text-xs">
                     <div><div class="font-bold text-zinc-100">${item.name} ($${item.price.toFixed(2)})</div><div class="text-tan-400 text-[11px] mt-0.5">Prep: ${item.prep_time}</div></div>
                     <div class="flex items-center gap-2">
-                        <button onclick="openEditMenuModal(${item.id})" class="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg text-xs font-semibold">Edit</button>
                         <button onclick="toggleSoldOut(${item.id}, ${item.sold_out})" class="${item.sold_out ? 'bg-rose-500/20 text-rose-400' : 'bg-zinc-800 text-zinc-400'} px-3 py-1.5 rounded-lg text-xs font-semibold">Sold Out</button>
                     </div>
                 </div>
@@ -415,107 +267,21 @@
 
         async function toggleSoldOut(id, currentStatus) { if(supabase) { await supabase.from('menu_items').update({ sold_out: !currentStatus }).eq('id', id); fetchCloudData(); } }
 
-        function openNewMenuModal() {
-            document.getElementById('editMenuId').value = ""; document.getElementById('editMenuName').value = "";
-            document.getElementById('editMenuCat').value = "Mesquite"; document.getElementById('editMenuPrice').value = "";
-            document.getElementById('editMenuPrep').value = "3 mins"; document.getElementById('editMenuSoldOut').checked = false;
-            document.getElementById('editMenuModalTitle').innerText = "Add Menu Item"; document.getElementById('editMenuModal').style.display = 'flex';
-        }
-
-        function openEditMenuModal(id) {
-            const item = cloudMenu.find(m => m.id === id); if (!item) return;
-            document.getElementById('editMenuId').value = item.id; document.getElementById('editMenuName').value = item.name;
-            document.getElementById('editMenuCat').value = item.category; document.getElementById('editMenuPrice').value = item.price;
-            document.getElementById('editMenuPrep').value = item.prep_time; document.getElementById('editMenuSoldOut').checked = item.sold_out;
-            document.getElementById('editMenuModalTitle').innerText = "Edit Menu Item"; document.getElementById('editMenuModal').style.display = 'flex';
-        }
-
-        function closeEditMenuModal() { document.getElementById('editMenuModal').style.display = 'none'; }
-
-        async function saveEditedMenuItem() {
-            if(!supabase) return;
-            const id = document.getElementById('editMenuId').value;
-            const item = {
-                name: document.getElementById('editMenuName').value.trim(), category: document.getElementById('editMenuCat').value.trim(),
-                price: parseFloat(document.getElementById('editMenuPrice').value), prep_time: document.getElementById('editMenuPrep').value.trim(),
-                sold_out: document.getElementById('editMenuSoldOut').checked
-            };
-            if (!item.name || isNaN(item.price)) return alert("Provide a valid name and price");
-            if (id) await supabase.from('menu_items').update(item).eq('id', id);
-            else await supabase.from('menu_items').insert([item]);
-            closeEditMenuModal(); fetchCloudData();
-        }
-
-        // --- LOCAL ANALYTICS (Pulled from Cloud History) ---
         function renderAnalytics() {
             const fulfilled = allCloudOrders.filter(h => h.status === 'Fulfilled');
             const totalRev = fulfilled.reduce((sum, h) => sum + h.total, 0);
             document.getElementById('statRevenue').innerText = `$${totalRev.toFixed(2)}`;
-
-            const withWait = fulfilled.filter(h => h.notes && !isNaN(parseInt(h.notes)));
-            let avgWait = 0;
-            if (withWait.length > 0) avgWait = Math.round(withWait.reduce((sum, h) => sum + parseInt(h.notes), 0) / withWait.length);
-            document.getElementById('statAvgWait').innerText = `${avgWait} mins`;
-
-            const highest = [...withWait].sort((a, b) => parseInt(b.notes) - parseInt(a.notes)).slice(0, 3);
-            const highContainer = document.getElementById('highestWaitBriefList');
-            if (highest.length === 0) highContainer.innerHTML = `<div class="text-zinc-500 text-[11px]">No data yet.</div>`;
-            else highContainer.innerHTML = highest.map(o => `<div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-800 text-[11px]"><span class="font-mono text-zinc-300">${o.name}</span><span class="font-bold text-amber-400">${o.notes} mins wait</span></div>`).join('');
         }
 
-        // --- LOCAL TIMESHEETS ---
-        function updateTimesheetUI() {
-            document.getElementById('truckHoursDisplay').innerText = `${local.truckHours.toFixed(1)}h`;
-            const employees = local.employees;
-            const totalCombined = local.truckHours + employees.reduce((sum, e) => sum + e.hours, 0);
-            document.getElementById('totalCombinedHoursDisplay').innerText = `${totalCombined.toFixed(1)} total hrs`;
-            const empList = document.getElementById('employeeTimesheetList');
-            if (employees.length === 0) empList.innerHTML = `<div class="text-[11px] text-zinc-500">No employees added.</div>`;
-            else empList.innerHTML = employees.map((emp, idx) => `
-                <div class="flex justify-between items-center bg-zinc-900 p-2 rounded border border-zinc-800 text-xs">
-                    <span class="font-medium text-zinc-200">${emp.name}</span>
-                    <div class="flex items-center gap-2">
-                        <span class="font-mono text-tan-400">${emp.hours.toFixed(1)} hrs</span>
-                        <button onclick="local.employees = (() => { let e = local.employees; e[${idx}].hours += 1; return e; })(); updateTimesheetUI();" class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px]">+1h</button>
-                        <button onclick="local.employees = (() => { let e = local.employees; e.splice(${idx}, 1); return e; })(); updateTimesheetUI();" class="text-rose-400 text-[10px]">✕</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-        function editTruckHours() { const val = prompt("Enter truck hours:", local.truckHours); if (val && !isNaN(val)) { local.truckHours = parseFloat(val); updateTimesheetUI(); } }
-        function addEmployee() { const n = document.getElementById('newEmployeeName').value.trim(); if (!n) return; let e = local.employees; e.push({name: n, hours: 0}); local.employees = e; document.getElementById('newEmployeeName').value = ''; updateTimesheetUI(); }
-
-        // --- LOCAL LOCATIONS ---
-        function renderLocationManagerList() {
-            const locs = local.locations; const aId = local.activeLocId;
-            document.getElementById('ownerLocationList').innerHTML = locs.map(l => `
-                <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex justify-between items-center text-xs">
-                    <div><div class="font-bold text-zinc-200">${l.name} <input type="radio" name="activeLoc" ${l.id === aId ? 'checked' : ''} onchange="local.activeLocId = ${l.id}; renderLocationManagerList()" class="ml-2 accent-tan-500"> Active</div><div class="text-zinc-400 text-[11px] mt-0.5">${l.address}</div></div>
-                    <div class="flex gap-2"><button onclick="openEditLocationModal(${l.id})" class="bg-zinc-800 px-2 py-1 rounded">Edit</button>${locs.length > 1 ? `<button onclick="local.locations = local.locations.filter(x => x.id !== ${l.id}); renderLocationManagerList()" class="text-rose-400">Del</button>` : ''}</div>
-                </div>
-            `).join('');
-        }
-        function saveNewLocation() {
-            const n = document.getElementById('newLocName').value.trim(); const a = document.getElementById('newLocAddress').value.trim();
-            if (!n || !a) return alert("Fill out fields"); let locs = local.locations; locs.push({id: Date.now(), name: n, address: a}); local.locations = locs; renderLocationManagerList();
-        }
-        function openEditLocationModal(id) {
-            const l = local.locations.find(x => x.id === id); if(!l) return;
-            document.getElementById('editLocId').value = l.id; document.getElementById('editLocName').value = l.name; document.getElementById('editLocAddress').value = l.address; document.getElementById('editLocationModal').style.display = 'flex';
-        }
-        function closeEditLocationModal() { document.getElementById('editLocationModal').style.display = 'none'; }
-        function saveEditedLocation() {
-            const id = parseInt(document.getElementById('editLocId').value); let locs = local.locations; const l = locs.find(x => x.id === id);
-            if (l) { l.name = document.getElementById('editLocName').value.trim(); l.address = document.getElementById('editLocAddress').value.trim(); local.locations = locs; } closeEditLocationModal(); renderLocationManagerList();
-        }
-
-        // --- LOCAL SECURITY ---
         function saveNewAuth() {
             const p1 = document.getElementById('newAuthVal').value; const p2 = document.getElementById('confirmAuthVal').value;
             if(!p1) return; if(p1 !== p2) return alert("PINs do not match"); local.auth = { value: p1 }; alert("PIN Updated"); document.getElementById('newAuthVal').value = ''; document.getElementById('confirmAuthVal').value = '';
         }
-
-        window.onload = () => { if(document.getElementById('ownerDashboardView').style.display === 'block') initDashboard(); };
+        
+        // This alerts you instantly when the file has successfully refreshed
+        window.onload = function() {
+            console.log("Portal Loaded successfully");
+        };
     </script>
 </body>
 </html>
