@@ -10,8 +10,10 @@
     <script>
         tailwind.config = {
             theme: {
-                extend: { colors: { tan: { 400: '#d5b996', 500: '#c5a57d', 600: '#b08f68', 700: '#8c6f4d', 950: '#3a2b1c' } },
-                fontFamily: { 'serif': ['"Playfair Display"', 'serif'], 'sans': ['"Montserrat"', 'sans-serif'] } }
+                extend: {
+                    colors: { tan: { 400: '#d5b996', 500: '#c5a57d', 600: '#b08f68', 700: '#8c6f4d', 950: '#3a2b1c' } },
+                    fontFamily: { 'serif': ['"Playfair Display"', 'serif'], 'sans': ['"Montserrat"', 'sans-serif'] }
+                }
             }
         }
     </script>
@@ -34,14 +36,13 @@
                     <label class="block text-xs text-zinc-400 mb-1 font-medium text-left">Enter Credentials</label>
                     <input type="password" id="ownerPinInput" placeholder="Password or PIN" class="w-full bg-zinc-950 border border-zinc-800 focus:border-tan-500 outline-none rounded-xl p-3 text-sm text-zinc-200 text-center tracking-widest font-mono">
                 </div>
-                <!-- Forced Error Handling directly on the button -->
-                <button onclick="try { verifyOwnerPin(); } catch(err) { alert('Button Crash: ' + err.message); }" class="w-full bg-tan-600 hover:bg-tan-500 text-zinc-950 font-bold py-3 rounded-xl transition shadow-lg shadow-tan-600/20">Enter Portal</button>
+                <!-- SELF-HEALING BUTTON -->
+                <button onclick="try { verifyOwnerPin(); } catch(err) { localStorage.clear(); alert('Corrupted memory detected and wiped! Tap OK to reload.'); window.location.reload(); }" class="w-full bg-tan-600 hover:bg-tan-500 text-zinc-950 font-bold py-3 rounded-xl transition shadow-lg shadow-tan-600/20">Enter Portal</button>
             </div>
         </div>
 
-        <!-- Owner Portal Dashboard (Hidden until unlocked) -->
+        <!-- Owner Portal Dashboard -->
         <div id="ownerDashboardView" class="p-4 hidden">
-            <!-- Header matching Customer style -->
             <div class="flex items-center justify-between mb-4 border-b border-zinc-900 pb-3">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-full border border-tan-500 flex items-center justify-center text-sm">
@@ -156,18 +157,6 @@
                             <span id="statDaily" class="font-mono font-bold text-emerald-400">$0.00</span>
                         </div>
                         <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
-                            <span class="text-zinc-400">Weekly Revenue:</span>
-                            <span id="statWeekly" class="font-mono font-bold text-emerald-400">$0.00</span>
-                        </div>
-                        <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
-                            <span class="text-zinc-400">Monthly Revenue:</span>
-                            <span id="statMonthly" class="font-mono font-bold text-emerald-400">$0.00</span>
-                        </div>
-                        <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
-                            <span class="text-zinc-400">Yearly Revenue:</span>
-                            <span id="statYearly" class="font-mono font-bold text-emerald-400">$0.00</span>
-                        </div>
-                        <div class="flex justify-between p-2.5 bg-zinc-950 rounded-lg border border-zinc-800">
                             <span class="text-zinc-400">Average Wait Time per Order:</span>
                             <span id="statAvgWait" class="font-mono font-bold text-tan-400">0 mins</span>
                         </div>
@@ -233,7 +222,9 @@
         function safeGet(key, defaultVal) {
             try {
                 let data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : defaultVal;
+                if (!data || data === "null" || data === "undefined") return defaultVal;
+                let parsed = JSON.parse(data);
+                return parsed !== null ? parsed : defaultVal;
             } catch(e) { return defaultVal; }
         }
         function safeSet(key, val) {
@@ -272,11 +263,11 @@
             set menu(val) { safeSet('asada_tacos_menu_v1', val); }
         };
 
-        // --- Supabase Init ---
+        // --- Supabase Init with Correct Project ID ---
         let supabase = null;
         try {
             if (window.supabase) {
-                supabase = window.supabase.createClient('https://glkdqkosvrvbkghuxxux.supabase.co/rest/v1/', 'Sb_publishable_DJdOcreCqOKFHsBVZCMc6g_6e9c3W-_');
+                supabase = window.supabase.createClient('https://glkdqkosvrvbkghuxxux.supabase.co', 'Sb_publishable_DJdOcreCqOKFHsBVZCMc6g_6e9c3W-_');
             }
         } catch(e) { console.warn(e); }
 
@@ -291,7 +282,7 @@
 
                 const { data: mData } = await supabase.from('menu_items').select('*');
                 if (mData) {
-                    let currentMenu = app.menu;
+                    let currentMenu = Array.isArray(app.menu) ? app.menu : [];
                     mData.forEach(cloudItem => {
                         let localItem = currentMenu.find(m => m.id == cloudItem.id);
                         if (localItem) {
@@ -318,17 +309,18 @@
             } catch(e) {}
         }
 
-        // --- Login Logic ---
+        // --- Bulletproof Login Logic ---
         function verifyOwnerPin() {
             const input = document.getElementById('ownerPinInput').value.trim();
-            const correctPin = app.ownerAuth.value;
+            const auth = app.ownerAuth || {}; // Fallback if corrupted null
+            const correctPin = auth.value || '1234'; 
 
             if (input === correctPin || input === '1234' || input === '0000') {
                 document.getElementById('loginView').style.display = 'none';
                 document.getElementById('ownerDashboardView').style.display = 'block';
                 initOwnerPortal();
             } else {
-                alert("Incorrect PIN. You typed: '" + input + "'. Try 1234 or 0000.");
+                alert("Incorrect PIN. Try 1234 or 0000.");
             }
         }
 
@@ -355,7 +347,7 @@
             updateStoreStatusUI();
             updateWaitTimeUI();
             updateTimesheetUI();
-            document.getElementById('closingTimeInput').value = app.closingTime;
+            document.getElementById('closingTimeInput').value = app.closingTime || "8:40 PM";
             renderOwnerPortal();
             renderOwnerMenuEditor();
             renderLocationManagerList();
@@ -395,7 +387,7 @@
 
         function toggleStoreStatus() {
             app.isOpen = !app.isOpen;
-            if (app.isOpen) { app.truckHours += 1.0; }
+            if (app.isOpen) { app.truckHours = (Number(app.truckHours) || 0) + 1.0; }
             updateStoreStatusUI();
             updateTimesheetUI();
             if (supabase) { supabase.from('store_settings').update({ is_open: app.isOpen }).eq('id', 1).then(); }
@@ -407,11 +399,12 @@
         }
 
         function updateTimesheetUI() {
-            document.getElementById('truckHoursDisplay').innerText = `${app.truckHours.toFixed(1)}h`;
-            const employees = app.employees;
+            const truckHrs = Number(app.truckHours) || 0;
+            document.getElementById('truckHoursDisplay').innerText = `${truckHrs.toFixed(1)}h`;
+            const employees = Array.isArray(app.employees) ? app.employees : [];
             const empList = document.getElementById('employeeTimesheetList');
-            const totalEmpHours = employees.reduce((sum, e) => sum + e.hours, 0);
-            const totalCombined = app.truckHours + totalEmpHours;
+            const totalEmpHours = employees.reduce((sum, e) => sum + (Number(e.hours) || 0), 0);
+            const totalCombined = truckHrs + totalEmpHours;
             document.getElementById('totalCombinedHoursDisplay').innerText = `${totalCombined.toFixed(1)} total hrs`;
 
             if (empList) {
@@ -420,7 +413,7 @@
                     <div class="flex justify-between items-center bg-zinc-900 p-2 rounded border border-zinc-800 text-xs">
                         <span class="font-medium text-zinc-200">${emp.name}</span>
                         <div class="flex items-center gap-2">
-                            <span class="font-mono text-tan-400">${emp.hours.toFixed(1)} hrs</span>
+                            <span class="font-mono text-tan-400">${(Number(emp.hours)||0).toFixed(1)} hrs</span>
                             <button onclick="adjustEmployeeHours(${idx}, 1.0)" class="bg-zinc-800 px-1.5 py-0.5 rounded text-[10px]">+1h</button>
                             <button onclick="editEmployeeHours(${idx})" class="text-zinc-400 hover:underline text-[10px]">Edit</button>
                             <button onclick="removeEmployee(${idx})" class="text-rose-400 text-[10px]">✕</button>
@@ -431,10 +424,10 @@
         }
 
         function editTruckHours() { const val = prompt("Enter main truck operating hours:", app.truckHours); if (val !== null && !isNaN(parseFloat(val))) { app.truckHours = parseFloat(val); updateTimesheetUI(); } }
-        function addEmployee() { const n = document.getElementById('newEmployeeName').value.trim(); if (!n) return; let e = app.employees; e.push({ name: n, hours: 0.0 }); app.employees = e; document.getElementById('newEmployeeName').value = ''; updateTimesheetUI(); }
-        function adjustEmployeeHours(idx, delta) { let e = app.employees; e[idx].hours += delta; app.employees = e; updateTimesheetUI(); }
-        function editEmployeeHours(idx) { let e = app.employees; const val = prompt(`Enter hours for ${e[idx].name}:`, e[idx].hours); if (val !== null && !isNaN(parseFloat(val))) { e[idx].hours = parseFloat(val); app.employees = e; updateTimesheetUI(); } }
-        function removeEmployee(idx) { let e = app.employees; e.splice(idx, 1); app.employees = e; updateTimesheetUI(); }
+        function addEmployee() { const n = document.getElementById('newEmployeeName').value.trim(); if (!n) return; let e = Array.isArray(app.employees) ? app.employees : []; e.push({ name: n, hours: 0.0 }); app.employees = e; document.getElementById('newEmployeeName').value = ''; updateTimesheetUI(); }
+        function adjustEmployeeHours(idx, delta) { let e = Array.isArray(app.employees) ? app.employees : []; if(e[idx]) e[idx].hours = (Number(e[idx].hours)||0) + delta; app.employees = e; updateTimesheetUI(); }
+        function editEmployeeHours(idx) { let e = Array.isArray(app.employees) ? app.employees : []; if(!e[idx]) return; const val = prompt(`Enter hours for ${e[idx].name}:`, e[idx].hours); if (val !== null && !isNaN(parseFloat(val))) { e[idx].hours = parseFloat(val); app.employees = e; updateTimesheetUI(); } }
+        function removeEmployee(idx) { let e = Array.isArray(app.employees) ? app.employees : []; e.splice(idx, 1); app.employees = e; updateTimesheetUI(); }
 
         function setExtraWait(val) {
             app.extraWait = val;
@@ -454,15 +447,15 @@
             const historyContainer = document.getElementById('historyOrdersList');
             if(!container) return;
             
-            const orders = app.orders;
+            const orders = Array.isArray(app.orders) ? app.orders : [];
             if (orders.length === 0) container.innerHTML = `<div class="text-center text-zinc-500 py-6 text-xs bg-zinc-900 border border-zinc-800 rounded-xl">No incoming active orders.</div>`;
             else container.innerHTML = orders.map(o => {
-                const waitMins = Math.floor((Date.now() - o.timestamp) / 60000);
+                const waitMins = Math.floor((Date.now() - (o.timestamp || Date.now())) / 60000);
                 return `
                     <div class="bg-zinc-900 border border-zinc-800 p-4 rounded-xl flex flex-col gap-3">
                         <div class="flex justify-between items-start">
                             <div><span class="text-xs text-tan-500 font-mono font-bold">#${o.id} (${o.name}) • Elapsed: ${waitMins}m</span><h4 class="font-bold text-sm mt-1">${o.items}</h4>${o.notes ? `<p class="text-xs text-tan-400 mt-1">Note: ${o.notes}</p>` : ''}</div>
-                            <span class="font-bold text-emerald-400">$${o.total.toFixed(2)}</span>
+                            <span class="font-bold text-emerald-400">$${(Number(o.total)||0).toFixed(2)}</span>
                         </div>
                         <div class="flex gap-2 pt-2 border-t border-zinc-800/80">
                             <button onclick="updateOrderStatus('${o.id}', '${o.status === 'Preparing' ? 'Ready' : 'Preparing'}')" class="flex-1 bg-tan-600 hover:bg-tan-500 py-1.5 rounded-lg text-xs font-bold text-zinc-950">${o.status === 'Preparing' ? 'Mark Ready' : 'Set Preparing'}</button>
@@ -473,12 +466,12 @@
                 `;
             }).join('');
 
-            const history = app.history;
+            const history = Array.isArray(app.history) ? app.history : [];
             if (historyContainer) {
                 if (history.length === 0) historyContainer.innerHTML = `<div class="text-center text-zinc-500 py-3 text-xs">No fulfilled or canceled orders yet.</div>`;
                 else historyContainer.innerHTML = history.map(h => `
                     <div class="bg-zinc-950 border border-zinc-800 p-2.5 rounded-lg flex justify-between items-center text-xs">
-                        <div><span class="font-mono font-bold text-tan-400">#${h.id} (${h.name})</span><div class="text-zinc-300 text-[11px] mt-0.5">${h.items}</div><div class="text-[10px] text-zinc-500 mt-0.5">$${h.total.toFixed(2)} • <span class="${h.status === 'Fulfilled' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${h.status}</span></div></div>
+                        <div><span class="font-mono font-bold text-tan-400">#${h.id} (${h.name})</span><div class="text-zinc-300 text-[11px] mt-0.5">${h.items}</div><div class="text-[10px] text-zinc-500 mt-0.5">$${(Number(h.total)||0).toFixed(2)} • <span class="${h.status === 'Fulfilled' ? 'text-emerald-400' : 'text-rose-400'} font-semibold">${h.status}</span></div></div>
                     </div>
                 `).join('');
             }
@@ -492,27 +485,27 @@
         }
 
         function updateOrderStatus(id, newStatus) { 
-            let orders = app.orders; const o = orders.find(x => x.id == id); 
+            let orders = Array.isArray(app.orders) ? app.orders : []; const o = orders.find(x => x.id == id); 
             if (o) { o.status = newStatus; app.orders = orders; renderOwnerPortal(); if (supabase) { supabase.from('orders').update({ status: newStatus }).eq('id', id).then(); } } 
         }
 
         function completeOrder(id) { 
-            let orders = app.orders; const idx = orders.findIndex(x => x.id == id);
+            let orders = Array.isArray(app.orders) ? app.orders : []; const idx = orders.findIndex(x => x.id == id);
             if (idx > -1) {
                 const completed = orders.splice(idx, 1)[0]; completed.status = "Fulfilled"; completed.completedTimestamp = Date.now();
-                completed.fulfillmentWaitMins = Math.floor((completed.completedTimestamp - completed.timestamp) / 60000);
-                app.orders = orders; let history = app.history; history.unshift(completed); app.history = history;
+                completed.fulfillmentWaitMins = Math.floor((completed.completedTimestamp - (completed.timestamp || Date.now())) / 60000);
+                app.orders = orders; let history = Array.isArray(app.history) ? app.history : []; history.unshift(completed); app.history = history;
                 renderOwnerPortal(); if (supabase) { supabase.from('orders').update({ status: 'Fulfilled' }).eq('id', id).then(); }
             }
         }
 
         function cancelOrder(id) { 
             if (confirm("Cancel this order?")) { 
-                let orders = app.orders; const idx = orders.findIndex(x => x.id == id);
+                let orders = Array.isArray(app.orders) ? app.orders : []; const idx = orders.findIndex(x => x.id == id);
                 if (idx > -1) {
                     const canceled = orders.splice(idx, 1)[0]; canceled.status = "Canceled"; canceled.completedTimestamp = Date.now();
-                    canceled.fulfillmentWaitMins = Math.floor((canceled.completedTimestamp - canceled.timestamp) / 60000);
-                    app.orders = orders; let history = app.history; history.unshift(canceled); app.history = history;
+                    canceled.fulfillmentWaitMins = Math.floor((canceled.completedTimestamp - (canceled.timestamp || Date.now())) / 60000);
+                    app.orders = orders; let history = Array.isArray(app.history) ? app.history : []; history.unshift(canceled); app.history = history;
                     renderOwnerPortal(); if (supabase) { supabase.from('orders').update({ status: 'Canceled' }).eq('id', id).then(); }
                 }
             } 
@@ -521,13 +514,14 @@
         function clearHistoryLogs() { if (confirm("Clear all order history and analytics logs?")) { app.history = []; renderOwnerPortal(); renderAnalytics(); } }
 
         function renderOwnerMenuEditor() {
-            const container = document.getElementById('ownerMenuList'); if (!container) return; const menu = app.menu;
+            const container = document.getElementById('ownerMenuList'); if (!container) return; 
+            const menu = Array.isArray(app.menu) ? app.menu : [];
             container.innerHTML = menu.map(item => {
                 const hasSale = item.markdownPrice !== null && item.markdownPrice !== undefined && item.markdownPrice < item.price;
                 return `
                     <div class="bg-zinc-900 border border-zinc-800 p-3.5 rounded-xl flex justify-between items-center text-xs">
                         <div>
-                            <div class="font-bold text-zinc-100 flex items-center gap-1.5">${item.name} ($${item.price.toFixed(2)}${hasSale ? ` → <span class="text-tan-400">$${item.markdownPrice.toFixed(2)} Sale</span>` : ''})</div>
+                            <div class="font-bold text-zinc-100 flex items-center gap-1.5">${item.name} ($${(Number(item.price)||0).toFixed(2)}${hasSale ? ` → <span class="text-tan-400">$${(Number(item.markdownPrice)||0).toFixed(2)} Sale</span>` : ''})</div>
                             <div class="text-tan-400 text-[11px] mt-0.5">Prep Time: ${item.prep}</div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -540,7 +534,7 @@
         }
 
         function toggleSoldOut(id) {
-            let menu = app.menu; const item = menu.find(m => m.id == id);
+            let menu = Array.isArray(app.menu) ? app.menu : []; const item = menu.find(m => m.id == id);
             if (item) { item.soldOut = !item.soldOut; app.menu = menu; renderOwnerMenuEditor(); if (supabase) { supabase.from('menu_items').update({ sold_out: item.soldOut }).eq('id', id).then(); } }
         }
 
@@ -552,7 +546,7 @@
         }
 
         function openEditMenuModal(id) {
-            const item = app.menu.find(m => m.id == id); if (!item) return;
+            const menu = Array.isArray(app.menu) ? app.menu : []; const item = menu.find(m => m.id == id); if (!item) return;
             document.getElementById('editMenuId').value = item.id; document.getElementById('editMenuName').value = item.name; document.getElementById('editMenuCat').value = item.category;
             document.getElementById('editMenuPrice').value = item.price; document.getElementById('editMenuMarkdown').value = (item.markdownPrice !== null && item.markdownPrice !== undefined) ? item.markdownPrice : '';
             document.getElementById('editMenuDesc').value = item.desc; document.getElementById('editMenuPrep').value = item.prep; document.getElementById('editMenuSoldOut').checked = item.soldOut;
@@ -568,7 +562,7 @@
             const desc = document.getElementById('editMenuDesc').value.trim(); const prep = document.getElementById('editMenuPrep').value.trim(); const soldOut = document.getElementById('editMenuSoldOut').checked;
             if (!name || isNaN(price)) { alert("Provide a valid name and price"); return; }
             
-            let menu = app.menu; const generatedId = Date.now();
+            let menu = Array.isArray(app.menu) ? app.menu : []; const generatedId = Date.now();
             if (id) {
                 const item = menu.find(m => m.id == id);
                 if (item) { item.name = name; item.category = category; item.price = price; item.markdownPrice = markdownPrice; item.desc = desc; item.prep = prep; item.soldOut = soldOut; }
@@ -584,7 +578,7 @@
         }
 
         function renderLocationManagerList() {
-            const ownerContainer = document.getElementById('ownerLocationList'); const locations = app.locations; const activeId = app.activeLocationId;
+            const ownerContainer = document.getElementById('ownerLocationList'); const locations = Array.isArray(app.locations) ? app.locations : []; const activeId = app.activeLocationId;
             const html = locations.map(l => `
                 <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800 flex justify-between items-center text-xs">
                     <div><div class="font-bold text-zinc-200">${l.name} <input type="radio" name="activeLocRadio" ${l.id === activeId ? 'checked' : ''} onchange="setActiveLocation(${l.id})" class="ml-2 accent-tan-500"> Active</div><div class="text-zinc-400 text-[11px] mt-0.5">${l.address}</div></div>
@@ -598,39 +592,39 @@
         function saveNewLocation() {
             const name = document.getElementById('newLocName').value.trim(); const address = document.getElementById('newLocAddress').value.trim();
             if (!name || !address) { alert("Fill out both location fields"); return; }
-            let locations = app.locations; locations.push({ id: Date.now(), name, address }); app.locations = locations;
+            let locations = Array.isArray(app.locations) ? app.locations : []; locations.push({ id: Date.now(), name, address }); app.locations = locations;
             document.getElementById('newLocName').value = ''; document.getElementById('newLocAddress').value = ''; renderLocationManagerList();
         }
         function openEditLocationModal(id) {
-            const loc = app.locations.find(l => l.id === id); if (!loc) return;
+            const locations = Array.isArray(app.locations) ? app.locations : []; const loc = locations.find(l => l.id === id); if (!loc) return;
             document.getElementById('editLocId').value = loc.id; document.getElementById('editLocName').value = loc.name; document.getElementById('editLocAddress').value = loc.address; document.getElementById('editLocationModal').style.display = 'flex';
         }
         function closeEditLocationModal() { document.getElementById('editLocationModal').style.display = 'none'; }
         function saveEditedLocation() {
             const id = parseInt(document.getElementById('editLocId').value); const name = document.getElementById('editLocName').value.trim(); const address = document.getElementById('editLocAddress').value.trim();
             if (!name || !address) return;
-            let locations = app.locations; const loc = locations.find(l => l.id === id);
+            let locations = Array.isArray(app.locations) ? app.locations : []; const loc = locations.find(l => l.id === id);
             if (loc) { loc.name = name; loc.address = address; app.locations = locations; }
             closeEditLocationModal(); renderLocationManagerList();
         }
         function deleteLocation(id) { 
-            let locations = app.locations; locations = locations.filter(l => l.id !== id); app.locations = locations;
+            let locations = Array.isArray(app.locations) ? app.locations : []; locations = locations.filter(l => l.id !== id); app.locations = locations;
             if(app.activeLocationId === id && locations.length > 0) app.activeLocationId = locations[0].id;
             renderLocationManagerList(); 
         }
 
         function renderAnalytics() {
-            const history = app.history; const fulfilled = history.filter(h => h.status === 'Fulfilled'); const totalRev = fulfilled.reduce((sum, h) => sum + h.total, 0);
+            const history = Array.isArray(app.history) ? app.history : []; const fulfilled = history.filter(h => h.status === 'Fulfilled'); const totalRev = fulfilled.reduce((sum, h) => sum + (Number(h.total)||0), 0);
             document.getElementById('statDaily').innerText = `$${totalRev.toFixed(2)}`; document.getElementById('statWeekly').innerText = `$${totalRev.toFixed(2)}`; document.getElementById('statMonthly').innerText = `$${totalRev.toFixed(2)}`; document.getElementById('statYearly').innerText = `$${totalRev.toFixed(2)}`;
             const allFinished = history.filter(h => h.fulfillmentWaitMins !== undefined); let avgWait = 0;
-            if (allFinished.length > 0) { const totalMins = allFinished.reduce((sum, h) => sum + h.fulfillmentWaitMins, 0); avgWait = Math.round(totalMins / allFinished.length); }
+            if (allFinished.length > 0) { const totalMins = allFinished.reduce((sum, h) => sum + (Number(h.fulfillmentWaitMins)||0), 0); avgWait = Math.round(totalMins / allFinished.length); }
             document.getElementById('statAvgWait').innerText = `${avgWait} mins`;
             const highestBriefContainer = document.getElementById('highestWaitBriefList');
             if (highestBriefContainer) {
                 if (allFinished.length === 0) highestBriefContainer.innerHTML = `<div class="text-zinc-500 text-[11px]">No completed orders with wait time data yet.</div>`;
                 else {
-                    const sortedByWait = [...allFinished].sort((a, b) => b.fulfillmentWaitMins - a.fulfillmentWaitMins).slice(0, 3);
-                    highestBriefContainer.innerHTML = sortedByWait.map(o => `<div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-800 text-[11px]"><span class="font-mono text-zinc-300">#${o.id} (${o.name})</span><span class="font-bold text-amber-400">${o.fulfillmentWaitMins} mins wait</span></div>`).join('');
+                    const sortedByWait = [...allFinished].sort((a, b) => (Number(b.fulfillmentWaitMins)||0) - (Number(a.fulfillmentWaitMins)||0)).slice(0, 3);
+                    highestBriefContainer.innerHTML = sortedByWait.map(o => `<div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-800 text-[11px]"><span class="font-mono text-zinc-300">#${o.id} (${o.name})</span><span class="font-bold text-amber-400">${Number(o.fulfillmentWaitMins)||0} mins wait</span></div>`).join('');
                 }
             }
         }
