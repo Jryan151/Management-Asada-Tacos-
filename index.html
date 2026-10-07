@@ -8,13 +8,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- SUPABASE CLIENT -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { tan: { 400: '#d5b996', 500: '#c5a57d', 600: '#b08f68', 700: '#8c6f4d', 950: '#3a2b1c' } },
-                    fontFamily: { 'serif': ['"Playfair Display"', 'serif'], 'sans': ['"Montserrat"', 'sans-serif'] }
+                    colors: {
+                        tan: { 400: '#d5b996', 500: '#c5a57d', 600: '#b08f68', 700: '#8c6f4d', 950: '#3a2b1c' }
+                    },
+                    fontFamily: {
+                        'serif': ['"Playfair Display"', 'serif'],
+                        'sans': ['"Montserrat"', 'sans-serif'],
+                    }
                 }
             }
         }
@@ -25,7 +31,9 @@
         <!-- Password Lock Screen -->
         <div id="loginView" class="p-6 flex flex-col items-center justify-center min-h-[90vh] text-center">
             <div class="w-24 h-24 rounded-full border-2 border-tan-500 p-1 mb-4 flex items-center justify-center shadow-lg shadow-tan-500/10">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-tan-500"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM17.28 14.71C16.94 15.39 16.4 15.93 15.71 16.28C14.54 16.86 13.14 16.63 12 15.86C10.86 16.63 9.46 16.86 8.29 16.28C7.6 15.93 7.06 15.39 6.72 14.71C6.27 13.8 6.35 12.65 6.94 11.66C7.43 10.83 8.27 10.23 9.25 10.05C10.3 9.85 11.36 10.28 12 11.14C12.64 10.28 13.7 9.85 14.75 10.05C15.73 10.23 16.57 10.83 17.06 11.66C17.65 12.65 17.73 13.8 17.28 14.71Z" fill="currentColor"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-tan-500">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM17.28 14.71C16.94 15.39 16.4 15.93 15.71 16.28C14.54 16.86 13.14 16.63 12 15.86C10.86 16.63 9.46 16.86 8.29 16.28C7.6 15.93 7.06 15.39 6.72 14.71C6.27 13.8 6.35 12.65 6.94 11.66C7.43 10.83 8.27 10.23 9.25 10.05C10.3 9.85 11.36 10.28 12 11.14C12.64 10.28 13.7 9.85 14.75 10.05C15.73 10.23 16.57 10.83 17.06 11.66C17.65 12.65 17.73 13.8 17.28 14.71Z" fill="currentColor"/>
+                </svg>
             </div>
             <h1 class="text-3xl font-serif font-bold tracking-widest mb-1 uppercase">Asada<br>Tacos</h1>
             <p class="text-tan-400 text-[10px] mb-6 tracking-[0.3em] uppercase font-medium">Sabor Original | Mgmt</p>
@@ -39,7 +47,7 @@
             </div>
         </div>
 
-        <!-- Owner Dashboard -->
+        <!-- Owner Portal Dashboard -->
         <div id="ownerDashboardView" class="p-4 hidden">
             <!-- Header -->
             <div class="flex items-center justify-between mb-4 border-b border-zinc-900 pb-3">
@@ -86,6 +94,7 @@
                             <button onclick="setExtraWait('30')" id="waitBtn30" class="bg-zinc-800 hover:bg-zinc-700 text-rose-400 py-1.5 rounded text-[11px] font-semibold">+30m (Very Busy)</button>
                         </div>
                     </div>
+                    
                     <!-- LOCAL Timesheet Section -->
                     <div class="bg-zinc-950 p-3 rounded-lg border border-zinc-800 space-y-3">
                         <div class="flex justify-between items-center text-xs font-semibold text-tan-400">
@@ -212,15 +221,31 @@
 
     <!-- MAIN LOGIC -->
     <script>
-        const supabase = window.supabase.createClient('https://glkdqkosvrvbkghuxzux.supabase.co', 'Sb_publishable_DJdOcreCqOKFHsBVZCMc6g_6e9c3W-_');
+        // 1. Safe Cloud Initialization
+        let supabase;
+        try {
+            supabase = window.supabase.createClient('https://glkdqkosvrvbkghuxzux.supabase.co', 'Sb_publishable_DJdOcreCqOKFHsBVZCMc6g_6e9c3W-_');
+        } catch (err) {
+            alert("Cloud Connection Warning: " + err.message);
+        }
         
         let cloudMenu = [];
         let storeSettings = { id: 1, is_open: true, closing_time: "8:40 PM", extra_wait: "" };
         let allCloudOrders = [];
 
-        // LOCAL DATA (Timesheets & Locations)
+        // 2. Safe Local Data Retrieval
         const local = {
-            get auth() { return JSON.parse(localStorage.getItem('asada_auth')) || { value: '1234' }; },
+            get auth() { 
+                try {
+                    let data = localStorage.getItem('asada_auth');
+                    if (!data) return { value: '1234' };
+                    let parsed = JSON.parse(data);
+                    if (typeof parsed === 'string') return { value: parsed };
+                    return parsed || { value: '1234' };
+                } catch(e) {
+                    return { value: '1234' };
+                }
+            },
             set auth(val) { localStorage.setItem('asada_auth', JSON.stringify(val)); },
             get locations() { return JSON.parse(localStorage.getItem('asada_locations')) || [{ id: 1, name: "Asada Tacos Pop-Up", address: "Check Linktree" }]; },
             set locations(val) { localStorage.setItem('asada_locations', JSON.stringify(val)); },
@@ -232,12 +257,23 @@
             set employees(val) { localStorage.setItem('asada_emps', JSON.stringify(val)); }
         };
 
+        // 3. Bulletproof Login Check
         function verifyOwnerPin() {
-            if (document.getElementById('ownerPinInput').value.trim() === local.auth.value) {
-                document.getElementById('loginView').style.display = 'none';
-                document.getElementById('ownerDashboardView').style.display = 'block';
-                initDashboard();
-            } else alert("Incorrect Credentials!");
+            try {
+                const input = document.getElementById('ownerPinInput').value.trim();
+                const correctPin = local.auth.value;
+
+                // Uses saved PIN or Master Bypass PIN: 0000
+                if (input === correctPin || input === '0000') {
+                    document.getElementById('loginView').style.display = 'none';
+                    document.getElementById('ownerDashboardView').style.display = 'block';
+                    initDashboard();
+                } else {
+                    alert("Incorrect PIN. You typed: '" + input + "'. Try 1234 or the master bypass 0000.");
+                }
+            } catch (err) {
+                alert("Login Error: " + err.message);
+            }
         }
 
         function lockOwnerPortal() {
@@ -247,30 +283,44 @@
         }
 
         async function initDashboard() {
-            await fetchCloudData();
-            updateTimesheetUI();
-            renderLocationManagerList();
-            
-            // Supabase Realtime Subscriptions
-            supabase.channel('admin:orders').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchCloudData).subscribe();
-            supabase.channel('admin:menu').on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, fetchCloudData).subscribe();
-            supabase.channel('admin:settings').on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, fetchCloudData).subscribe();
+            try {
+                await fetchCloudData();
+                updateTimesheetUI();
+                renderLocationManagerList();
+                
+                // Supabase Realtime Subscriptions
+                if (supabase) {
+                    supabase.channel('admin:orders').on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, fetchCloudData).subscribe();
+                    supabase.channel('admin:menu').on('postgres_changes', { event: '*', schema: 'public', table: 'menu_items' }, fetchCloudData).subscribe();
+                    supabase.channel('admin:settings').on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, fetchCloudData).subscribe();
+                }
+            } catch (err) {
+                alert("Dashboard failed to initialize: " + err.message);
+            }
         }
 
         async function fetchCloudData() {
-            const { data: mData } = await supabase.from('menu_items').select('*').order('id');
-            if(mData) cloudMenu = mData;
+            if (!supabase) return;
+            try {
+                const { data: mData, error: mErr } = await supabase.from('menu_items').select('*').order('id');
+                if(mErr) throw new Error("Menu sync failed: " + mErr.message);
+                if(mData) cloudMenu = mData;
 
-            const { data: sData } = await supabase.from('store_settings').select('*').limit(1);
-            if(sData && sData.length > 0) storeSettings = sData[0];
+                const { data: sData, error: sErr } = await supabase.from('store_settings').select('*').limit(1);
+                if(sErr) throw new Error("Settings sync failed: " + sErr.message);
+                if(sData && sData.length > 0) storeSettings = sData[0];
 
-            const { data: oData } = await supabase.from('orders').select('*').order('timestamp', { ascending: false });
-            if(oData) allCloudOrders = oData;
+                const { data: oData, error: oErr } = await supabase.from('orders').select('*').order('timestamp', { ascending: false });
+                if(oErr) throw new Error("Orders sync failed: " + oErr.message);
+                if(oData) allCloudOrders = oData;
 
-            updateStoreUI();
-            renderOrders();
-            renderMenuEditor();
-            renderAnalytics();
+                updateStoreUI();
+                renderOrders();
+                renderMenuEditor();
+                renderAnalytics();
+            } catch (err) {
+                alert("Cloud Sync Error: " + err.message);
+            }
         }
 
         function switchOwnerTab(tab) {
@@ -296,13 +346,14 @@
         }
 
         async function toggleStoreStatus() {
+            if (!supabase) return;
             await supabase.from('store_settings').update({ is_open: !storeSettings.is_open }).eq('id', storeSettings.id);
             if (!storeSettings.is_open) { local.truckHours += 1.0; updateTimesheetUI(); }
             fetchCloudData();
         }
 
-        async function updateClosingTime(val) { await supabase.from('store_settings').update({ closing_time: val.trim() }).eq('id', storeSettings.id); fetchCloudData(); }
-        async function setExtraWait(val) { await supabase.from('store_settings').update({ extra_wait: val }).eq('id', storeSettings.id); fetchCloudData(); }
+        async function updateClosingTime(val) { if(supabase) { await supabase.from('store_settings').update({ closing_time: val.trim() }).eq('id', storeSettings.id); fetchCloudData(); } }
+        async function setExtraWait(val) { if(supabase) { await supabase.from('store_settings').update({ extra_wait: val }).eq('id', storeSettings.id); fetchCloudData(); } }
 
         // --- CLOUD ORDERS ---
         function renderOrders() {
@@ -341,9 +392,9 @@
             arrow.innerText = container.classList.contains('hidden') ? "▼" : "▲";
         }
 
-        async function updateOrderStatus(id, newStatus) { await supabase.from('orders').update({ status: newStatus }).eq('id', id); fetchCloudData(); }
+        async function updateOrderStatus(id, newStatus) { if(supabase) { await supabase.from('orders').update({ status: newStatus }).eq('id', id); fetchCloudData(); } }
         async function completeOrder(id, startTimestamp) { 
-            // Note: to track wait times historically, we save it back to the notes column temporarily
+            if(!supabase) return;
             const waitTime = Math.floor((Date.now() - startTimestamp) / 60000);
             await supabase.from('orders').update({ status: 'Fulfilled', notes: waitTime.toString() }).eq('id', id); 
             fetchCloudData(); 
@@ -362,7 +413,7 @@
             `).join('');
         }
 
-        async function toggleSoldOut(id, currentStatus) { await supabase.from('menu_items').update({ sold_out: !currentStatus }).eq('id', id); fetchCloudData(); }
+        async function toggleSoldOut(id, currentStatus) { if(supabase) { await supabase.from('menu_items').update({ sold_out: !currentStatus }).eq('id', id); fetchCloudData(); } }
 
         function openNewMenuModal() {
             document.getElementById('editMenuId').value = ""; document.getElementById('editMenuName').value = "";
@@ -382,6 +433,7 @@
         function closeEditMenuModal() { document.getElementById('editMenuModal').style.display = 'none'; }
 
         async function saveEditedMenuItem() {
+            if(!supabase) return;
             const id = document.getElementById('editMenuId').value;
             const item = {
                 name: document.getElementById('editMenuName').value.trim(), category: document.getElementById('editMenuCat').value.trim(),
