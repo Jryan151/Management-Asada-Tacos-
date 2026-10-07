@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asada Tacos - Owner Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-sans min-h-screen p-4 md:p-8">
+    <div class="max-w-3xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-zinc-800 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-pink-500">Asada Tacos</h1>
+                <p class="text-xs text-zinc-400">Owner Dashboard & Kitchen Display</p>
+            </div>
+            <div id="liveClock" class="font-mono text-sm text-zinc-300 bg-zinc-900 px-3 py-1.5 rounded-lg border border-zinc-800"></div>
+        </div>
+
+        <!-- Store Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Open/Close Toggle -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                <h2 class="text-sm font-bold mb-4 text-zinc-300">Store Status</h2>
+                <div class="flex items-center justify-between bg-zinc-950 p-2 rounded-lg border border-zinc-800">
+                    <button id="btnOpen" onclick="setStoreStatus(true)" class="flex-1 py-2 text-sm font-bold rounded-md transition bg-emerald-600 text-white">OPEN</button>
+                    <button id="btnClose" onclick="setStoreStatus(false)" class="flex-1 py-2 text-sm font-bold rounded-md transition text-zinc-500 hover:text-white">CLOSED</button>
+                </div>
+                <div class="mt-4">
+                    <label class="text-xs text-zinc-400 mb-1 block">Closing Time Display:</label>
+                    <input type="text" id="closingTimeInput" onchange="setClosingTime(this.value)" value="8:40 PM" class="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-2 text-sm text-zinc-200">
+                </div>
+            </div>
+
+            <!-- Kitchen Traffic & Wait Times -->
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+                <h2 class="text-sm font-bold mb-4 text-zinc-300">Kitchen Wait Time Padding</h2>
+                <p class="text-xs text-zinc-500 mb-3">Add extra minutes to the customer's estimated wait time if the kitchen is backed up.</p>
+                <div class="flex gap-2">
+                    <button id="wait0" onclick="setExtraWait('')" class="flex-1 py-2 text-sm rounded-lg border border-pink-500 bg-pink-500/20 text-pink-400 font-bold transition">+0 Min</button>
+                    <button id="wait15" onclick="setExtraWait('15')" class="flex-1 py-2 text-sm rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-400 transition hover:text-white">+15 Min</button>
+                    <button id="wait30" onclick="setExtraWait('30')" class="flex-1 py-2 text-sm rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-400 transition hover:text-white">+30 Min</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Queue -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-sm font-bold text-zinc-300">Live Ticket Queue</h2>
+                <button onclick="clearCompletedOrders()" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg transition">Clear Completed</button>
+            </div>
+            <div id="orderQueue" class="space-y-3">
+                <!-- Orders inject here -->
+            </div>
+        </div>
+
+        <!-- Menu 86 Toggle -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <h2 class="text-sm font-bold mb-4 text-zinc-300">Menu Availability (86 Items)</h2>
+            <div id="menuToggleList" class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <!-- Menu items inject here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const storeKeys = {
+            isOpen: 'asada_tacos_isopen',
+            closing: 'asada_tacos_closingtime',
+            wait: 'asada_tacos_extrawait',
+            orders: 'asada_tacos_orders',
+            menu: 'asada_tacos_menu_v1'
+        };
+
+        // Initialize defaults if they don't exist
+        if (localStorage.getItem(storeKeys.isOpen) === null) localStorage.setItem(storeKeys.isOpen, JSON.stringify(true));
+        if (!localStorage.getItem(storeKeys.closing)) localStorage.setItem(storeKeys.closing, "8:40 PM");
+        if (!localStorage.getItem(storeKeys.menu)) {
+            const defaultMenu = [
+                { id: 1, name: "2 Quesadillas", soldOut: false },
+                { id: 2, name: "3 Cheesy Tacos", soldOut: false },
+                { id: 3, name: "3 Tacos", soldOut: false },
+                { id: 4, name: "Asada Papa", soldOut: false },
+                { id: 5, name: "1 Regular Taco", soldOut: false }
+            ];
+            localStorage.setItem(storeKeys.menu, JSON.stringify(defaultMenu));
+        }
+
+        function initDashboard() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            syncUI();
+            renderOrders();
+            renderMenuToggles();
+        }
+
+        // Listen for new orders coming from the customer site
+        window.addEventListener('storage', function(e) {
+            if (e.key && e.key.startsWith('asada_tacos_')) {
+                syncUI();
+                if (e.key === storeKeys.orders) renderOrders();
+                if (e.key === storeKeys.menu) renderMenuToggles();
+            }
+        });
+
+        function syncUI() {
+            // Sync Open/Close
+            const isOpen = JSON.parse(localStorage.getItem(storeKeys.isOpen));
+            const btnOpen = document.getElementById('btnOpen');
+            const btnClose = document.getElementById('btnClose');
+            if (isOpen) {
+                btnOpen.className = "flex-1 py-2 text-sm font-bold rounded-md transition bg-emerald-600 text-white";
+                btnClose.className = "flex-1 py-2 text-sm font-bold rounded-md transition text-zinc-500 hover:text-white hover:bg-zinc-800";
+            } else {
+                btnClose.className = "flex-1 py-2 text-sm font-bold rounded-md transition bg-rose-600 text-white";
+                btnOpen.className = "flex-1 py-2 text-sm font-bold rounded-md transition text-zinc-500 hover:text-white hover:bg-zinc-800";
+            }
+
+            // Sync Closing Time
+            document.getElementById('closingTimeInput').value = localStorage.getItem(storeKeys.closing);
+
+            // Sync Wait Time Buttons
+            const wait = localStorage.getItem(storeKeys.wait) || '';
+            ['wait0', 'wait15', 'wait30'].forEach(id => {
+                document.getElementById(id).className = "flex-1 py-2 text-sm rounded-lg border border-zinc-700 bg-zinc-800 text-zinc-400 transition hover:text-white";
+            });
+            const activeBtn = wait === '30' ? 'wait30' : (wait === '15' ? 'wait15' : 'wait0');
+            const btnEl = document.getElementById(activeBtn);
+            btnEl.className = "flex-1 py-2 text-sm rounded-lg border border-pink-500 bg-pink-500/20 text-pink-400 font-bold transition";
+        }
+
+        function setStoreStatus(status) {
+            localStorage.setItem(storeKeys.isOpen, JSON.stringify(status));
+            syncUI();
+        }
+
+        function setClosingTime(timeStr) {
+            localStorage.setItem(storeKeys.closing, timeStr);
+        }
+
+        function setExtraWait(mins) {
+            localStorage.setItem(storeKeys.wait, mins);
+            syncUI();
+        }
+
+        function renderOrders() {
+            const orders = JSON.parse(localStorage.getItem(storeKeys.orders)) || [];
+            const container = document.getElementById('orderQueue');
+            
+            if (orders.length === 0) {
+                container.innerHTML = `<div class="text-center text-zinc-500 py-6 text-sm">No active orders.</div>`;
+                return;
+            }
+
+            container.innerHTML = orders.map((o, idx) => {
+                const waitMins = Math.floor((Date.now() - o.timestamp) / 60000);
+                
+                let actionBtn = '';
+                let statusBadge = '';
+                
+                if (o.status === "Preparing") {
+                    statusBadge = `<span class="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-2 py-0.5 rounded text-[10px] uppercase font-bold">Preparing</span>`;
+                    actionBtn = `<button onclick="updateOrderStatus(${idx}, 'Ready')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-xs font-bold transition shadow-lg shadow-emerald-600/20">Mark Ready</button>`;
+                } else if (o.status === "Ready") {
+                    statusBadge = `<span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] uppercase font-bold">Ready</span>`;
+                    actionBtn = `<button onclick="updateOrderStatus(${idx}, 'Completed')" class="bg-zinc-700 hover:bg-zinc-600 text-white px-4 py-2 rounded-lg
